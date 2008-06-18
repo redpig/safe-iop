@@ -2,9 +2,7 @@ safe_iop - a safe integer operation library for C
 Will Drewry <redpig@dataspill.org>
 
 = Copyright and Licensing
-Copyright 2007-2008, Will Drewry <redpig@dataspill.org>
-Some portions copyright 2008 Google Inc
-Released into the public domain with no warranty and no guarantees
+See LICENSE in the distribution. This is covered under a BSD license.
 
 = Introduction
 
