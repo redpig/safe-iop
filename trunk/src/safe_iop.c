@@ -1,14 +1,21 @@
 /* safe_iop
- * License:: released in to the public domain
  * Author:: Will Drewry <redpig@dataspill.org>
- * Copyright 2007,2008 redpig@dataspill.org
- * Some portions copyright Google Inc, 2008.
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
- * OF ANY KIND, either express or implied.
- *
  * See safe_iop.h for more info.
+ *
+ * Copyright (c) 2007,2008 Will Drewry <redpig@dataspill.org>
+ * Some portions contributed by Google Inc., 2008.
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 #include <stdint.h>
 #include <stdarg.h>
