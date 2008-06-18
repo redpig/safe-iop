@@ -461,9 +461,10 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
     __sio(var)(ok); })
 
 #if SAFE_IOP_COMPAT
-/* These are used for testing for easy type enforcement */
+/* This is for compatibility with pre-0.3 versions.
+ * Do not enable unless you _have_ to.
+ */
 #include <sys/types.h>
-#include <limits.h>
 
 #ifndef SAFE_IOP_INLINE
 #  if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 &&  __GNUC_MINOR__ > 0)
