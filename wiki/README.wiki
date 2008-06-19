@@ -52,10 +52,10 @@ E.g., #include <safe_iop.h>
 
 safe_iop provides macros which check the validity of a given integer operation.
 It supports the following operations:
-* multiplication: safe_mul()
-* division:       safe_div()
-* addition:       safe_add()
-* subtraction:    safe_sub()
+  * multiplication: safe_mul()
+  * division:       safe_div()
+  * addition:       safe_add()
+  * subtraction:    safe_sub()
 
 All of these macros take a result pointer, or NULL, as the first argument.  The
 subsequent argument should be the two values to operate on.  They then return
@@ -110,11 +110,9 @@ See http://code.google.com/p/safe-iop/wiki/Compatibility
 
 = Credit where credit is do =
 
-* The functions used in this library were largely drawn from the examples
-  provided in CERT's secure coding standard.
-* Thanks to peter@valchev.net for reviews, comments, enthusiasm, and multiple
-  platform tests!
-* Thanks to taviso@sdf.lonestar.org for the pointing out stupid API decisions
+  * The functions used in this library were largely drawn from the examples provided in CERT's secure coding standard.
+  * Thanks to peter@valchev.net for reviews, comments, enthusiasm, and multiple platform tests!
+  * Thanks to taviso@sdf.lonestar.org for the pointing out stupid API decisions
   and cross-checking my logic.
 
 = Changes =
