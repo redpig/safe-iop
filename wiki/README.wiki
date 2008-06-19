@@ -64,7 +64,7 @@ a true or false value will be returned.)
 {{{
   uint32_t a = 100, b = 200, c = 0;
   if (safe_mul(&c, a, b)) printf("c is %u\n", c);
-}}]
+}}}
 
 In addition, there are versions of these functions for multiple sequential operations:
 {{{
