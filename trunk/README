@@ -1,7 +1,6 @@
-#summary README (distribution)
+#summary safe_iop - a safe integer operation library for C
 
 = Copyright and Licensing =
-
 See LICENSE in the distribution. This is covered under a BSD license.
 
 = Introduction =
@@ -50,10 +49,10 @@ E.g., #include <safe_iop.h>
 
 safe_iop provides macros which check the validity of a given integer operation.
 It supports the following operations:
-* multiplication: safe_mul()
-* division:       safe_div()
-* addition:       safe_add()
-* subtraction:    safe_sub()
+  * multiplication: safe_mul()
+  * division:       safe_div()
+  * addition:       safe_add()
+  * subtraction:    safe_sub()
 
 All of these macros take a result pointer, or NULL, as the first argument.  The
 subsequent argument should be the two values to operate on.  They then return
@@ -108,12 +107,9 @@ See http://code.google.com/p/safe-iop/wiki/Compatibility
 
 = Credit where credit is do =
 
-* The functions used in this library were largely drawn from the examples
-  provided in CERT's secure coding standard.
-* Thanks to peter@valchev.net for reviews, comments, enthusiasm, and multiple
-  platform tests!
-* Thanks to taviso@sdf.lonestar.org for the pointing out stupid API decisions
-  and cross-checking my logic.
+  * The functions used in this library were largely drawn from the examples provided in CERT's secure coding standard.
+  * Thanks to peter@valchev.net for reviews, comments, enthusiasm, and multiple platform tests!
+  * Thanks to taviso@sdf.lonestar.org for the pointing out stupid API decisions and cross-checking my logic.
 
 = Changes =
 
@@ -124,3 +120,5 @@ The changes and todo list can be found in include/safe_iop.h
 Please drop me an email if I'm doing something completely stupid, you love
 using the library, you have a patch or recommendation, or for whatever other
 reason.  I hope this software helps out a bit!
+
+
