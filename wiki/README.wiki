@@ -1,7 +1,5 @@
-#summary README (distribution)
+#summary safe_iop - a safe integer operation library for C
 #labels Featured,Phase-Deploy
-
-safe_iop - a safe integer operation library for C
 
 = Copyright and Licensing =
 See LICENSE in the distribution. This is covered under a BSD license.
@@ -112,8 +110,7 @@ See http://code.google.com/p/safe-iop/wiki/Compatibility
 
   * The functions used in this library were largely drawn from the examples provided in CERT's secure coding standard.
   * Thanks to peter@valchev.net for reviews, comments, enthusiasm, and multiple platform tests!
-  * Thanks to taviso@sdf.lonestar.org for the pointing out stupid API decisions
-  and cross-checking my logic.
+  * Thanks to taviso@sdf.lonestar.org for the pointing out stupid API decisions and cross-checking my logic.
 
 = Changes =
 
