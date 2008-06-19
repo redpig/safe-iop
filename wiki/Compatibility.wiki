@@ -1,4 +1,5 @@
 #summary Table of tested platforms and related notes
+#labels Featured
 
 = Introduction =
 
