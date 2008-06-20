@@ -71,6 +71,15 @@ In addition, there are versions of these functions for multiple sequential opera
 
 safe_<op>3-5() are all available.
 
+There are also two helper functions for safe increment/decrement∴
+{{{
+  int a = 0;
+  ...
+  if (!safe_inc(&a)) abort();
+  ...
+  if (!safe_dec(&a)) abort();
+}}}
+
 It is important to note that if the types of integers passed to safe_iop do not
 match, the operation will return false (0) with -DNDEBUG defined.  If it is not
 defined, assert() is called and the program will abort if these mismatch is
