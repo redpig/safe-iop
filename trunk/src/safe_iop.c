@@ -132,6 +132,7 @@ int safe_iopf(void *result, const char *const fmt, ...) {
 #include <stdio.h>
 #include <stdint.h>
 #include <limits.h>
+#include <stdlib.h>
 
 /* __LP64__ is given by GCC. Without more work, this is bound to GCC. */
 #if __LP64__ == 1 || __SIZEOF_LONG__ > __SIZEOF_INT__
@@ -190,6 +191,8 @@ int T_add_s8() {
   int8_t a, b;
   a=SCHAR_MIN; b=-1; EXPECT_FALSE(safe_add(NULL, a, b));
   a=SCHAR_MAX; b=1; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=SCHAR_MAX; EXPECT_FALSE(safe_inc(&a));
+  a=0; EXPECT_TRUE(safe_inc(&a)); EXPECT_TRUE(a==1);
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SCHAR_MIN; b=SCHAR_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SCHAR_MAX/2; b=SCHAR_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -201,6 +204,7 @@ int T_add_s16() {
   int16_t a, b;
   a=SHRT_MIN; b=-1; EXPECT_FALSE(safe_add(NULL, a, b));
   a=SHRT_MAX; b=1; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=SHRT_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SHRT_MIN; b=SHRT_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SHRT_MAX/2; b=SHRT_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -212,6 +216,7 @@ int T_add_s32() {
   int32_t a, b;
   a=INT_MIN; b=-1; EXPECT_FALSE(safe_add(NULL, a, b));
   a=INT_MAX; b=1; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=INT_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=INT_MIN; b=INT_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=INT_MAX/2; b=INT_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -223,6 +228,7 @@ int T_add_s64() {
   int64_t a, b;
   a=SAFE_INT64_MIN; b=-1; EXPECT_FALSE(safe_add(NULL, a, b));
   a=SAFE_INT64_MAX; b=1; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=SAFE_INT64_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SAFE_INT64_MIN; b=SAFE_INT64_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SAFE_INT64_MAX/2; b=SAFE_INT64_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -234,6 +240,7 @@ int T_add_long() {
   long a, b;
   a=LONG_MIN; b=-1; EXPECT_FALSE(safe_add(NULL, a, b));
   a=LONG_MAX; b=1; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=LONG_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=LONG_MIN; b=LONG_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=LONG_MAX/2; b=LONG_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -244,6 +251,7 @@ int T_add_longlong() {
   long long a, b;
   a=LLONG_MIN; b=-1; EXPECT_FALSE(safe_add(NULL, a, b));
   a=LLONG_MAX; b=1; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=LLONG_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=LLONG_MIN; b=LLONG_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=LLONG_MAX/2; b=LLONG_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -254,6 +262,7 @@ int T_add_ssizet() {
   ssize_t a, b;
   a=SSIZE_MIN; b=-1; EXPECT_FALSE(safe_add(NULL, a, b));
   a=SSIZE_MAX; b=1; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=SSIZE_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SSIZE_MIN; b=SSIZE_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SSIZE_MAX/2; b=SSIZE_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -264,6 +273,7 @@ int T_add_u8() {
   int r=1;
   uint8_t a, b;
   a=1; b=UCHAR_MAX; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=UCHAR_MAX; EXPECT_FALSE(safe_inc(&a));
   a=UCHAR_MAX/2; b=a+2; EXPECT_FALSE(safe_add(NULL, a, b));
   a=UCHAR_MAX/2; b=a; EXPECT_TRUE(safe_add(NULL, a, b));
   a=UCHAR_MAX/2; b=a+1; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -276,6 +286,7 @@ int T_add_u16() {
   int r=1;
   uint16_t a, b;
   a=1; b=USHRT_MAX; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=USHRT_MAX; EXPECT_FALSE(safe_inc(&a));
   a=USHRT_MAX/2; b=a+2; EXPECT_FALSE(safe_add(NULL, a, b));
   a=USHRT_MAX/2; b=a; EXPECT_TRUE(safe_add(NULL, a, b));
   a=USHRT_MAX/2; b=a+1; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -288,6 +299,7 @@ int T_add_u32() {
   int r=1;
   uint32_t a, b;
   a=1; b=UINT_MAX; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=UINT_MAX; EXPECT_FALSE(safe_inc(&a));
   a=UINT_MAX/2; b=a+2; EXPECT_FALSE(safe_add(NULL, a, b));
   a=UINT_MAX/2; b=a; EXPECT_TRUE(safe_add(NULL, a, b));
   a=UINT_MAX/2; b=a+1; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -300,6 +312,7 @@ int T_add_u64() {
   int r=1;
   uint64_t a, b;
   a=1; b=SAFE_UINT64_MAX; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=SAFE_UINT64_MAX; EXPECT_FALSE(safe_inc(&a));
   a=SAFE_UINT64_MAX/2; b=a+2; EXPECT_FALSE(safe_add(NULL, a, b));
   a=SAFE_UINT64_MAX/2; b=a; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SAFE_UINT64_MAX/2; b=a+1; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -312,6 +325,7 @@ int T_add_ulong() {
   int r=1;
   unsigned long a, b;
   a=1; b=ULONG_MAX; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=ULONG_MAX; EXPECT_FALSE(safe_inc(&a));
   a=ULONG_MAX/2; b=a+2; EXPECT_FALSE(safe_add(NULL, a, b));
   a=ULONG_MAX/2; b=a; EXPECT_TRUE(safe_add(NULL, a, b));
   a=ULONG_MAX/2; b=a+1; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -324,6 +338,7 @@ int T_add_ulonglong() {
   int r=1;
   unsigned long long a, b;
   a=1; b=ULLONG_MAX; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=ULLONG_MAX; EXPECT_FALSE(safe_inc(&a));
   a=ULLONG_MAX/2; b=a+2; EXPECT_FALSE(safe_add(NULL, a, b));
   a=ULLONG_MAX/2; b=a; EXPECT_TRUE(safe_add(NULL, a, b));
   a=ULLONG_MAX/2; b=a+1; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -336,6 +351,7 @@ int T_add_sizet() {
   int r=1;
   size_t a, b;
   a=1; b=SIZE_MAX; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=SIZE_MAX; EXPECT_FALSE(safe_inc(&a));
   a=SIZE_MAX/2; b=a+2; EXPECT_FALSE(safe_add(NULL, a, b));
   a=SIZE_MAX/2; b=a; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SIZE_MAX/2; b=a+1; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -381,6 +397,8 @@ int T_sub_s8() {
   int r=1;
   int8_t a, b;
   a=SCHAR_MIN; b=1; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=SCHAR_MIN; EXPECT_FALSE(safe_dec(&a));
+  a=1; EXPECT_TRUE(safe_dec(&a)); EXPECT_TRUE(a==0);
   a=SCHAR_MIN; b=SCHAR_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=SCHAR_MIN/2; b=SCHAR_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=-2; b=SCHAR_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
@@ -394,6 +412,7 @@ int T_sub_s16() {
   int r=1;
   int16_t a, b;
   a=SHRT_MIN; b=1; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=SHRT_MIN; EXPECT_FALSE(safe_dec(&a));
   a=SHRT_MIN; b=SHRT_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=SHRT_MIN/2; b=SHRT_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=-2; b=SHRT_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
@@ -407,6 +426,7 @@ int T_sub_s32() {
   int r=1;
   int32_t a, b;
   a=INT_MIN; b=1; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=INT_MIN; EXPECT_FALSE(safe_dec(&a));
   a=INT_MIN; b=INT_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=INT_MIN/2; b=INT_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=-2; b=INT_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
@@ -420,6 +440,7 @@ int T_sub_s64() {
   int r=1;
   int64_t a, b;
   a=SAFE_INT64_MIN; b=1; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=SAFE_INT64_MIN; EXPECT_FALSE(safe_dec(&a));
   a=SAFE_INT64_MIN; b=SAFE_INT64_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=SAFE_INT64_MIN/2; b=SAFE_INT64_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=-2; b=SAFE_INT64_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
@@ -433,6 +454,7 @@ int T_sub_long() {
   int r=1;
   long a, b;
   a=LONG_MIN; b=1; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=LONG_MIN; EXPECT_FALSE(safe_dec(&a));
   a=LONG_MIN; b=LONG_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=LONG_MIN/2; b=LONG_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=-2; b=LONG_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
@@ -446,6 +468,7 @@ int T_sub_longlong() {
   int r=1;
   long long a, b;
   a=LLONG_MIN; b=1; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=LLONG_MIN; EXPECT_FALSE(safe_dec(&a));
   a=LLONG_MIN; b=LLONG_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=LLONG_MIN/2; b=LLONG_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=-2; b=LLONG_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
@@ -459,6 +482,7 @@ int T_sub_ssizet() {
   int r=1;
   ssize_t a, b;
   a=SSIZE_MIN; b=1; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=SSIZE_MIN; EXPECT_FALSE(safe_dec(&a));
   a=SSIZE_MIN; b=SSIZE_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=SSIZE_MIN/2; b=SSIZE_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=-2; b=SSIZE_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
@@ -472,6 +496,7 @@ int T_sub_u8() {
   int r=1;
   uint8_t a, b;
   a=0; b=UCHAR_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=0; EXPECT_FALSE(safe_dec(&a));
   a=UCHAR_MAX-1; b=UCHAR_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=UCHAR_MAX; b=UCHAR_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=1; b=100; EXPECT_FALSE(safe_sub(NULL, a, b));
@@ -485,6 +510,7 @@ int T_sub_u16() {
   int r=1;
   uint16_t a, b;
   a=0; b=USHRT_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=0; EXPECT_FALSE(safe_dec(&a));
   a=USHRT_MAX-1; b=USHRT_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=USHRT_MAX; b=USHRT_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=1; b=100; EXPECT_FALSE(safe_sub(NULL, a, b));
@@ -498,6 +524,7 @@ int T_sub_u32() {
   int r=1;
   uint32_t a, b;
   a=UINT_MAX-1; b=UINT_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=0; EXPECT_FALSE(safe_dec(&a));
   a=UINT_MAX; b=UINT_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=1; b=100; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=100; b=0; EXPECT_TRUE(safe_sub(NULL, a, b));
@@ -510,6 +537,7 @@ int T_sub_u64() {
   int r=1;
   uint64_t a, b;
   a=SAFE_UINT64_MAX-1; b=SAFE_UINT64_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=0; EXPECT_FALSE(safe_dec(&a));
   a=SAFE_UINT64_MAX; b=SAFE_UINT64_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=1; b=100; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=100; b=0; EXPECT_TRUE(safe_sub(NULL, a, b));
@@ -522,6 +550,7 @@ int T_sub_ulong() {
   int r=1;
   unsigned long a, b;
   a=ULONG_MAX-1; b=ULONG_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=0; EXPECT_FALSE(safe_dec(&a));
   a=ULONG_MAX; b=ULONG_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=1; b=100; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=100; b=0; EXPECT_TRUE(safe_sub(NULL, a, b));
@@ -534,6 +563,7 @@ int T_sub_ulonglong() {
   int r=1;
   unsigned long long a, b;
   a=ULLONG_MAX-1; b=ULLONG_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=0; EXPECT_FALSE(safe_dec(&a));
   a=ULLONG_MAX; b=ULLONG_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=1; b=100; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=100; b=0; EXPECT_TRUE(safe_sub(NULL, a, b));
@@ -546,6 +576,7 @@ int T_sub_sizet() {
   int r=1;
   size_t a, b;
   a=SIZE_MAX-1; b=SIZE_MAX; EXPECT_FALSE(safe_sub(NULL, a, b));
+  a=0; EXPECT_FALSE(safe_dec(&a));
   a=SIZE_MAX; b=SIZE_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=1; b=100; EXPECT_FALSE(safe_sub(NULL, a, b));
   a=100; b=0; EXPECT_TRUE(safe_sub(NULL, a, b));
@@ -1088,8 +1119,125 @@ int T_magic_constants() {
   return r;
 }
 
+#ifdef SAFE_IOP_SPEED_TEST
+#include <sys/time.h>
+#include <time.h>
 
+#define SPEED_TEST(_type, _tests, _ops, _op, _fn) ({ \
+  int tnum; \
+  printf("%s: speed test(" #_type ", %d, %u, %s)\n", \
+         __func__, _tests, _ops, #_op); \
+  for (tnum=0; tnum < (_tests); ++tnum) { \
+    unsigned int speed_i = 0; \
+    _type speed_a=0x41, speed_b=0x42, speed_c; \
+    struct timeval start, finish; \
+    double raw=0, safe=0; \
+    gettimeofday(&start, NULL); \
+    for (speed_c=0,speed_i=0; speed_i < _ops; ++speed_i) \
+      speed_c = speed_a _op speed_b; \
+    for (speed_c=0,speed_i=0; speed_i < _ops; ++speed_i) \
+      speed_c = speed_a _op speed_b; \
+    for (speed_c=0,speed_i=0; speed_i < _ops; ++speed_i) \
+      speed_c = speed_a _op speed_b; \
+    gettimeofday(&finish, NULL); \
+    raw = finish.tv_sec - start.tv_sec + \
+          (finish.tv_usec - start.tv_usec) / 1.e6; \
+    gettimeofday(&start, NULL); \
+    for (speed_c=0,speed_i=0; speed_i < _ops; ++speed_i) \
+      _fn(&speed_c, speed_a, speed_b); \
+    for (speed_c=0,speed_i=0; speed_i < _ops; ++speed_i) \
+      _fn(&speed_c, speed_a, speed_b); \
+    for (speed_c=0,speed_i=0; speed_i < _ops; ++speed_i) \
+      _fn(&speed_c, speed_a, speed_b); \
+    gettimeofday(&finish, NULL); \
+    safe = finish.tv_sec - start.tv_sec + \
+          (finish.tv_usec - start.tv_usec) / 1.e6; \
+    printf("%s: [%d] %u*3 ops; raw: %.9fs safe: %.9fs\n", \
+           __func__, tnum, speed_i, raw, safe); \
+  } \
+})
 
+int T_speed() {
+  int r=1, truns=2;
+  unsigned int runs = UINT_MAX;
+  SPEED_TEST(size_t, truns, runs, +, safe_add);
+  SPEED_TEST(unsigned long long, truns, runs, +, safe_add);
+  SPEED_TEST(unsigned long, truns, runs, +, safe_add);
+  SPEED_TEST(uint64_t, truns, runs, +, safe_add);
+  SPEED_TEST(uint32_t, truns, runs, +, safe_add);
+  SPEED_TEST(uint16_t, truns, runs, +, safe_add);
+  SPEED_TEST(uint8_t, truns, runs, +, safe_add);
+  SPEED_TEST(ssize_t, truns, runs, +, safe_add);
+  SPEED_TEST(long long, truns, runs, +, safe_add);
+  SPEED_TEST(long, truns, runs, +, safe_add);
+  SPEED_TEST(int64_t, truns, runs, +, safe_add);
+  SPEED_TEST(int32_t, truns, runs, +, safe_add);
+  SPEED_TEST(int16_t, truns, runs, +, safe_add);
+  SPEED_TEST(int8_t, truns, runs, +, safe_add);
+
+  SPEED_TEST(size_t, truns, runs, -, safe_sub);
+  SPEED_TEST(unsigned long long, truns, runs, -, safe_sub);
+  SPEED_TEST(unsigned long, truns, runs, -, safe_sub);
+  SPEED_TEST(uint64_t, truns, runs, -, safe_sub);
+  SPEED_TEST(uint32_t, truns, runs, -, safe_sub);
+  SPEED_TEST(uint16_t, truns, runs, -, safe_sub);
+  SPEED_TEST(uint8_t, truns, runs, -, safe_sub);
+  SPEED_TEST(ssize_t, truns, runs, -, safe_sub);
+  SPEED_TEST(long long, truns, runs, -, safe_sub);
+  SPEED_TEST(long, truns, runs, -, safe_sub);
+  SPEED_TEST(int64_t, truns, runs, -, safe_sub);
+  SPEED_TEST(int32_t, truns, runs, -, safe_sub);
+  SPEED_TEST(int16_t, truns, runs, -, safe_sub);
+  SPEED_TEST(int8_t, truns, runs, -, safe_sub);
+
+  SPEED_TEST(size_t, truns, runs, *, safe_mul);
+  SPEED_TEST(unsigned long long, truns, runs, *, safe_mul);
+  SPEED_TEST(unsigned long, truns, runs, *, safe_mul);
+  SPEED_TEST(uint64_t, truns, runs, *, safe_mul);
+  SPEED_TEST(uint32_t, truns, runs, *, safe_mul);
+  SPEED_TEST(uint16_t, truns, runs, *, safe_mul);
+  SPEED_TEST(uint8_t, truns, runs, *, safe_mul);
+  SPEED_TEST(ssize_t, truns, runs, *, safe_mul);
+  SPEED_TEST(long long, truns, runs, *, safe_mul);
+  SPEED_TEST(long, truns, runs, *, safe_mul);
+  SPEED_TEST(int64_t, truns, runs, *, safe_mul);
+  SPEED_TEST(int32_t, truns, runs, *, safe_mul);
+  SPEED_TEST(int16_t, truns, runs, *, safe_mul);
+  SPEED_TEST(int8_t, truns, runs, *, safe_mul);
+
+  SPEED_TEST(size_t, truns, runs, /, safe_div);
+  SPEED_TEST(unsigned long long, truns, runs, /, safe_div);
+  SPEED_TEST(unsigned long, truns, runs, /, safe_div);
+  SPEED_TEST(uint64_t, truns, runs, /, safe_div);
+  SPEED_TEST(uint32_t, truns, runs, /, safe_div);
+  SPEED_TEST(uint16_t, truns, runs, /, safe_div);
+  SPEED_TEST(uint8_t, truns, runs, /, safe_div);
+  SPEED_TEST(ssize_t, truns, runs, /, safe_div);
+  SPEED_TEST(long long, truns, runs, /, safe_div);
+  SPEED_TEST(long, truns, runs, /, safe_div);
+  SPEED_TEST(int64_t, truns, runs, /, safe_div);
+  SPEED_TEST(int32_t, truns, runs, /, safe_div);
+  SPEED_TEST(int16_t, truns, runs, /, safe_div);
+  SPEED_TEST(int8_t, truns, runs, /, safe_div);
+
+  SPEED_TEST(size_t, truns, runs, %, safe_mod);
+  SPEED_TEST(unsigned long long, truns, runs, %, safe_mod);
+  SPEED_TEST(unsigned long, truns, runs, %, safe_mod);
+  SPEED_TEST(uint64_t, truns, runs, %, safe_mod);
+  SPEED_TEST(uint32_t, truns, runs, %, safe_mod);
+  SPEED_TEST(uint16_t, truns, runs, %, safe_mod);
+  SPEED_TEST(uint8_t, truns, runs, %, safe_mod);
+  SPEED_TEST(ssize_t, truns, runs, %, safe_mod);
+  SPEED_TEST(long long, truns, runs, %, safe_mod);
+  SPEED_TEST(long, truns, runs, %, safe_mod);
+  SPEED_TEST(int64_t, truns, runs, %, safe_mod);
+  SPEED_TEST(int32_t, truns, runs, %, safe_mod);
+  SPEED_TEST(int16_t, truns, runs, %, safe_mod);
+  SPEED_TEST(int8_t, truns, runs, %, safe_mod);
+
+  return r;
+}
+#endif
 
 int main(int argc, char **argv) {
   /* test inlines */
@@ -1173,10 +1321,15 @@ int main(int argc, char **argv) {
 
   tests++; if (T_magic_constants()) succ++; else fail++;
 
+
   printf("%d/%d expects succeeded (%d failures)\n",
          expect_succ, expect, expect_fail);
   printf("%d/%d tests succeeded (%d failures)\n", succ, tests, fail);
-  /* TODO: Add tests for safe_iopf when upgraded */
+  /* Currently, this requires a quiescent system to be even approximately useful.
+   * TODO: use better timing functions */
+#ifdef SAFE_IOP_SPEED_TEST
+  T_speed();
+#endif
   return fail;
 }
 #endif

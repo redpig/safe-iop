@@ -131,6 +131,20 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
     } \
     __sio(var)(ok); })
 
+#define safe_inc(_pA) ({ \
+  typeof(_pA) __sio(var)(pA) = (_pA); \
+  safe_add(__sio(var)(pA), *(__sio(var)(pA)), \
+           ((typeof(*(__sio(var)(pA))))1)); \
+})
+
+#if 0
+#define safe_inc(_A) ({ \
+  safe_add(&__sio(var)(pA), __sio(var)(pA), 1); \
+})
+#endif
+
+
+
 #define safe_add3(_ptr, _A, _B, _C) \
 ({ typeof(_A) __sio(var)(a) = (_A); \
    typeof(_B) __sio(var)(b) = (_B); \
@@ -180,6 +194,11 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
     } \
     __sio(var)(ok); })
 
+#define safe_dec(_pA) ({ \
+  typeof(_pA) __sio(var)(pA) = (_pA); \
+  safe_sub(__sio(var)(pA), *__sio(var)(pA), \
+           ((typeof(*(__sio(var)(pA))))1)); \
+})
 /* These are sequentially performed */
 #define safe_sub3(_ptr, _A, _B, _C) \
 ({ typeof(_A) __sio(var)(a) = (_A); \
