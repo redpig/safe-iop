@@ -9,16 +9,16 @@ safe_iop was written with portability in mind. It has only been tested (thus far
 
 
 || Architecture || Operating System || Compiler       || Notes    || Tested ||
-|| x86          || OS X Leopard     || GNU GCC 4.0.1  || -O3      || r0.3   || 
-|| x86          || OS X Tiger       || GNU GCC 4.0.1  || -O3      || r0.3   || 
-|| x86          || GNU/Linux        || GNU GCC 4.0.3  || -O3      || r0.3   || 
-|| x86_64       || GNU/Linux        || GNU GCC 4.0.3  || -O3      || r0.3   || 
-|| alpha        || OpenBSD          || GNU GCC 3.3.5  || -O3      || r0.3   || 
-|| macppc       || OpenBSD          || GNU GCC 3.3.5  || -O3      || r0.3   || 
-|| arm          || OpenBSD          || GNU GCC 3.3.5  || -O3      || r0.3   || 
-|| vax          || OpenBSD          || GNU GCC 2.95.3 || -O3      || r0.3   || 
-|| sparc        || OpenBSD          || GNU GCC 2.95.3 || -O3      || r0.3   || 
-|| sparc64      || OpenBSD          || GNU GCC 3.3.5  || -O1 (1)  || r0.3   ||
+|| x86          || OS X Leopard     || GNU GCC 4.0.1  || -O3      || r3     || 
+|| x86          || OS X Tiger       || GNU GCC 4.0.1  || -O3      || r3     || 
+|| x86          || GNU/Linux        || GNU GCC 4.0.3  || -O3      || r3     || 
+|| x86_64       || GNU/Linux        || GNU GCC 4.0.3  || -O3      || r3     || 
+|| alpha        || OpenBSD          || GNU GCC 3.3.5  || -O3      || r3     || 
+|| macppc       || OpenBSD          || GNU GCC 3.3.5  || -O3      || r3     || 
+|| arm          || OpenBSD          || GNU GCC 3.3.5  || -O3      || r3     || 
+|| vax          || OpenBSD          || GNU GCC 2.95.3 || -O3      || r3     || 
+|| sparc        || OpenBSD          || GNU GCC 2.95.3 || -O3      || r3     || 
+|| sparc64      || OpenBSD          || GNU GCC 3.3.5  || -O1 (1)  || r3     ||
 
 
 = Notes =
