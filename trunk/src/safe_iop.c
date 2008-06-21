@@ -365,10 +365,17 @@ int T_add_mixed() {
   int8_t a = 1;
   uint8_t b = 2;
   uint16_t c = 3;
-  EXPECT_FALSE(safe_add(NULL, a, b));
-  EXPECT_FALSE(safe_add(NULL, b, c));
-  EXPECT_FALSE(safe_add(NULL, a, c));
-  EXPECT_FALSE(safe_add3(NULL, a, b, c));
+  a=1; b=SCHAR_MAX; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=0; b=SCHAR_MAX+1; EXPECT_FALSE(safe_add(NULL, a, b));
+  a=1; b=SCHAR_MAX-1; EXPECT_TRUE(safe_add(NULL, a, b));
+  b=1; c=UCHAR_MAX; EXPECT_FALSE(safe_add(NULL, b, c));
+  b=0; c=UCHAR_MAX+1; EXPECT_FALSE(safe_add(NULL, b, c));
+  b=1; c=UCHAR_MAX-1; EXPECT_TRUE(safe_add(NULL, b, c));
+  b=1; c=UCHAR_MAX-1; EXPECT_TRUE(safe_add(NULL, c, b));
+  a=1; c=USHRT_MAX; EXPECT_FALSE(safe_add(NULL, a, c));
+  a=1;b=1;c=USHRT_MAX-3; EXPECT_FALSE(safe_add3(NULL, a, b, c));
+  a=1;b=1;c=1; EXPECT_TRUE(safe_add3(NULL, a, b, c));
+  a=1;b=1;c=SCHAR_MAX-3; EXPECT_TRUE(safe_add3(NULL, a, b, c));
   return r;
 }
 
@@ -387,6 +394,13 @@ int T_add_increment() {
   EXPECT_TRUE(a == 2);
   EXPECT_TRUE(b == 3);
   EXPECT_TRUE(c == 1);
+  a = 1; b = 2; cur=d;d[0] = 0;
+  EXPECT_TRUE(safe_add(cur++, a++, b++));
+  EXPECT_TRUE(d[0] == 3);
+  EXPECT_TRUE(cur == &d[1]);
+  EXPECT_TRUE(a == 2);
+  EXPECT_TRUE(b == 3);
+
   return r;
 }
 

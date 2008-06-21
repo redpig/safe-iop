@@ -22,6 +22,8 @@ all: $(TESTNAME) $(TESTNAME)_speed
 # This may be built as a library or directly included in source.
 # Unless support for safe_iopf is needed, header inclusion is enough.
 
+# With gcc 4.3 and higher, add -Wno-type-limits to silence the
+# portability warnings..
 $(TESTNAME): src/safe_iop.c include/safe_iop.h
 	$(CC) $(CFLAGS) -DNDEBUG=1 -DSAFE_IOP_TEST=1 $(SOURCES) -o $@
 
