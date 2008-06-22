@@ -53,8 +53,8 @@ It supports the following operations:
   * division:       safe_div()
   * addition:       safe_add()
   * subtraction:    safe_sub()
-  * left shift:     safe_shl()
-  * right shift:    safe_shr()
+  * left shift:     safe_shl() (trunk r21+)
+  * right shift:    safe_shr() (trunk r21+)
 
 All of these macros take a result pointer, or NULL, as the first argument.  The
 subsequent argument should be the two values to operate on.  They then return
@@ -81,6 +81,7 @@ There are also two helper functions for safe increment/decrement∴
   ...
   if (!safe_dec(&a)) abort();
 }}}
+(Available in truck after change r19)
 
 It is important to note that it is safest to pass integer of similar types to
 safe_iop.  However, as of change r20, safe_iop supports automatic type casting to the type of the first operand.  However, if this cast cannot be performed without losing data, safe_iop will fail.  The failure mode depends on the compilation options.  If -DNDEBUG is defined, the safe_iop will return false.  If it is not defined, assert() is called and the process will terminated.
@@ -128,5 +129,6 @@ The changes and todo list can be found in include/safe_iop.h
 Please drop me an email if I'm doing something completely stupid, you love
 using the library, you have a patch or recommendation, or for whatever other
 reason.  I hope this software helps out a bit!
+
 
 
