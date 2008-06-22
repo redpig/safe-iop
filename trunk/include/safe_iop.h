@@ -103,9 +103,7 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
    (sizeof(typeof(__A)) == sizeof(typeof(__B))))
 
 /* Casts B to A if possible. Only call if type_enforce fails. */
-/* Expects tmp vars first - not side-effect safe otherwise */
-/* Optimize scOk assignment to minimize use */
-/* https://www.securecoding.cert.org/confluence/display/seccode/INT31-C.+Ensure+that+integer+conversions+do+not+result+in+lost+or+misinterpreted+data */
+/* XXX: Optimize scOk assignment to minimize use */
 #define OPAQUE_SAFE_IOP_PREFIX_MACRO_safe_cast(__DST, __A, __B)  ({ \
   int __sio(var)(__scOk) = 0; \
   if (sizeof(typeof(__A)) == sizeof(typeof(__B))) { \
@@ -115,10 +113,12 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
     } else if (__sio(m)(is_signed)(__A) && __sio(m)(is_signed)(__B)) { \
         __sio(var)(__scOk) = 1; \
     } else if (!__sio(m)(is_signed)(__A) && __sio(m)(is_signed)(__B)) { \
-      if ((__B) > 0 || (__B) == 0) \
+      if ((__B) > (typeof(__B))0 || (__B) == (typeof(__B))0) \
         __sio(var)(__scOk) = 1; \
     } else if (__sio(m)(is_signed)(__A) && !__sio(m)(is_signed)(__B)) { \
-      if ((__B) < __sio(m)(smax)(__A) || (__B) == __sio(m)(smax)(__A)) \
+      /* XXX: this should safely truncate. I hope? */ \
+      if ((__B) < (typeof(__B))__sio(m)(smax)(__A) || \
+          (__B) == (typeof(__B))__sio(m)(smax)(__A)) \
         __sio(var)(__scOk) = 1; \
     } \
   } else if (sizeof(typeof(__A)) > sizeof(typeof(__B))) { \
@@ -129,30 +129,40 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
     } else if (__sio(m)(is_signed)(__A) && __sio(m)(is_signed)(__B)) { \
         __sio(var)(__scOk) = 1; \
     } else if (!__sio(m)(is_signed)(__A) && __sio(m)(is_signed)(__B)) { \
-      if ((__B) == 0 || (__B) > 0) \
+      if ((__B) == (typeof(__B))0 || (__B) > (typeof(__B))0) \
         __sio(var)(__scOk) = 1; \
     } else if (__sio(m)(is_signed)(__A) && !__sio(m)(is_signed)(__B)) { \
-      if ((__B) < __sio(m)(smax)(__A) || (__B) == __sio(m)(smax)(__A)) \
+      /* this is true by default */ \
+      if (__sio(m)(smax)(__A) >= __sio(m)(umax)(__B)) \
+        __sio(var)(__scOk) = 1; \
+      /* This will safely truncate given that smax(a) <= umax(b) */ \
+      else if ((__B) < (typeof(__B))__sio(m)(smax)(__A) || \
+          (__B) == (typeof(__B))__sio(m)(smax)(__A)) \
         __sio(var)(__scOk) = 1; \
     } \
   } else if (sizeof(typeof(__A)) < sizeof(typeof(__B))) { \
     /* cast down (loss of precision) */ \
     if (!__sio(m)(is_signed)(__A) && !__sio(m)(is_signed)(__B)) { \
-      if ((__B) == __sio(m)(umax)(__A) || (__B) < __sio(m)(umax)(__A)) \
+      if ((__B) == (typeof(__B))__sio(m)(umax)(__A)) \
+        __sio(var)(__scOk) = 1; \
+      if ((__B) < (typeof(__B))__sio(m)(umax)(__A)) \
         __sio(var)(__scOk) = 1; \
     } else if (__sio(m)(is_signed)(__A) && __sio(m)(is_signed)(__B)) { \
-      if (((__B) > __sio(m)(smin)(__A) || \
-           (__B) == __sio(m)(smin)(__A)) && \
-          ((__B) < __sio(m)(smax)(__A) || \
-           (__B) == __sio(m)(smax)(__A))) \
+      if (((__B) > (typeof(__B))__sio(m)(smin)(__A) || \
+           (__B) == (typeof(__B))__sio(m)(smin)(__A)) && \
+          ((__B) < (typeof(__B))__sio(m)(smax)(__A) || \
+           (__B) == (typeof(__B))__sio(m)(smax)(__A))) \
         __sio(var)(__scOk) = 1; \
     } else if (!__sio(m)(is_signed)(__A) && __sio(m)(is_signed)(__B)) { \
-      if (((__B) > 0 || (__B) == 0) && \
-          (((__B) < __sio(m)(umax)(__A)) || \
-           ((__B) == __sio(m)(umax)(__A)))) \
+      /* this should safely extend */ \
+      if (((__B) > (typeof(__B))0 || (__B) == (typeof(__B))0) && \
+          (((__B) < (typeof(__B))__sio(m)(umax)(__A)) || \
+           ((__B) == (typeof(__B))__sio(m)(umax)(__A)))) \
         __sio(var)(__scOk) = 1; \
     } else if (__sio(m)(is_signed)(__A) && !__sio(m)(is_signed)(__B)) { \
-      if ((__B) < __sio(m)(smax)(__A) || (__B) == __sio(m)(smax)(__A)) \
+      /* this should safely extend */ \
+      if ((__B) < (typeof(__B))__sio(m)(smax)(__A) || \
+          (__B) == (typeof(__B))__sio(m)(smax)(__A)) \
         __sio(var)(__scOk) = 1; \
     } \
   } \
@@ -613,8 +623,8 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
 
 #define safe_sshl(_ptr, _a, _b) \
  ({ int __sio(var)(ok) = 1; \
-    if (!((_a) >= 0) || \
-        !((_b) >= 0) || \
+    if (!((_a) > 0 || (_a) == 0) || \
+        !((_b) > 0 || (_b) == 0) || \
         ((_b) >= sizeof(typeof(_a))*CHAR_BIT) || \
         ((_a) > (__sio(m)(smax)(_a) >> (_b)))) \
       __sio(var)(ok) = 0; \
@@ -634,8 +644,8 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
 /* XXX: CERT doesnt recommend failing on -a, but it is undefined */
 #define safe_sshr(_ptr, _a, _b) \
  ({ int __sio(var)(ok) = 1; \
-    if (!((_a) >= 0) || \
-        !((_b) >= 0) || \
+    if (!((_a) > 0 || (_a) == 0) || \
+        !((_b) > 0 || (_b) == 0) || \
         ((_b) >= sizeof(typeof(_a))*CHAR_BIT)) \
       __sio(var)(ok) = 0; \
     else \
@@ -645,7 +655,7 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
 /* this doesn't whine if 0 >> n. */
 #define safe_ushr(_ptr, _a, _b) \
  ({ int __sio(var)(ok) = 1; \
-    if ((_b) >= sizeof(typeof(_a))*CHAR_BIT) \
+    if ((_b) >= (sizeof(typeof(_a))*CHAR_BIT)) \
       __sio(var)(ok) = 0; \
     else \
       if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) >> (_b); } \
