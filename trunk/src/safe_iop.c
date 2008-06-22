@@ -1100,6 +1100,335 @@ int T_div_sizet() {
   return r;
 }
 
+/***** SHL *****/
+int T_shl_s8() {
+  int r=1;
+  int8_t a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(int8_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(int8_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=5; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+int T_shl_s16() {
+  int r=1;
+  int16_t a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(int16_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(int16_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+int T_shl_s32() {
+  int r=1;
+  int32_t a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(int32_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(int32_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+int T_shl_s64() {
+  int r=1;
+  int64_t a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(int64_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(int64_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+int T_shl_long() {
+  int r=1;
+  long a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(long)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(long)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+int T_shl_longlong() {
+  int r=1;
+  long long a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(long long)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(long long)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+int T_shl_ssizet() {
+  int r=1;
+  ssize_t a, b;
+   a=-1; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(ssize_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=sizeof(ssize_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+ return r;
+}
+
+int T_shl_u8() {
+  int r=1;
+  uint8_t a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=UCHAR_MAX; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+int T_shl_u16() {
+  int r=1;
+  uint16_t a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=USHRT_MAX; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+int T_shl_u32() {
+  int r=1;
+  uint32_t a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=UINT_MAX; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+int T_shl_u64() {
+  int r=1;
+  uint64_t a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=SAFE_UINT64_MAX; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+int T_shl_ulong() {
+  int r=1;
+  unsigned long a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=ULONG_MAX; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+int T_shl_ulonglong() {
+  int r=1;
+  unsigned long long a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=ULLONG_MAX; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+int T_shl_sizet() {
+  int r=1;
+  size_t a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shl(NULL,a, b));
+  a=SIZE_MAX; b=1; EXPECT_FALSE(safe_shl(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shl(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shl(NULL, a, b));
+  return r;
+}
+
+/***** SHR *****/
+int T_shr_s8() {
+  int r=1;
+  int8_t a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(int8_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(int8_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=5; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+int T_shr_s16() {
+  int r=1;
+  int16_t a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(int16_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(int16_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+int T_shr_s32() {
+  int r=1;
+  int32_t a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(int32_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(int32_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+int T_shr_s64() {
+  int r=1;
+  int64_t a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(int64_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(int64_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+int T_shr_long() {
+  int r=1;
+  long a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(long)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(long)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+int T_shr_longlong() {
+  int r=1;
+  long long a, b;
+  a=-1; b=1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(long long)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(long long)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+int T_shr_ssizet() {
+  int r=1;
+  ssize_t a, b;
+   a=-1; b=1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=-1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(ssize_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=sizeof(ssize_t)*CHAR_BIT + 1; EXPECT_FALSE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=100; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+ return r;
+}
+
+int T_shr_u8() {
+  int r=1;
+  uint8_t a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+int T_shr_u16() {
+  int r=1;
+  uint16_t a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+int T_shr_u32() {
+  int r=1;
+  uint32_t a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+int T_shr_u64() {
+  int r=1;
+  uint64_t a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+int T_shr_ulong() {
+  int r=1;
+  unsigned long a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+int T_shr_ulonglong() {
+  int r=1;
+  unsigned long long a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+int T_shr_sizet() {
+  int r=1;
+  size_t a, b;
+  a=1; b=sizeof(typeof(a))*CHAR_BIT+1; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=4; b=sizeof(typeof(a))*CHAR_BIT; EXPECT_FALSE(safe_shr(NULL,a, b));
+  a=1; b=2; EXPECT_TRUE(safe_shr(NULL, a, b));
+  a=1; b=4; EXPECT_TRUE(safe_shr(NULL, a, b));
+  return r;
+}
+
+/***** MISC *****/
+
 int T_magic_constants() {
   int r=1;
   EXPECT_TRUE(__sio(m)(smin)(((int8_t)0)) == SCHAR_MIN);
@@ -1256,6 +1585,36 @@ int T_speed() {
 int main(int argc, char **argv) {
   /* test inlines */
   int tests = 0, succ = 0, fail = 0;
+  tests++; if (T_shr_s8())  succ++; else fail++;
+  tests++; if (T_shr_s16()) succ++; else fail++;
+  tests++; if (T_shr_s32()) succ++; else fail++;
+  tests++; if (T_shr_s64()) succ++; else fail++;
+  tests++; if (T_shr_long()) succ++; else fail++;
+  tests++; if (T_shr_longlong()) succ++; else fail++;
+  tests++; if (T_shr_ssizet()) succ++; else fail++;
+  tests++; if (T_shr_u8())  succ++; else fail++;
+  tests++; if (T_shr_u16()) succ++; else fail++;
+  tests++; if (T_shr_u32()) succ++; else fail++;
+  tests++; if (T_shr_u64()) succ++; else fail++;
+  tests++; if (T_shr_ulong()) succ++; else fail++;
+  tests++; if (T_shr_ulonglong()) succ++; else fail++;
+  tests++; if (T_shr_sizet()) succ++; else fail++;
+
+  tests++; if (T_shl_s8())  succ++; else fail++;
+  tests++; if (T_shl_s16()) succ++; else fail++;
+  tests++; if (T_shl_s32()) succ++; else fail++;
+  tests++; if (T_shl_s64()) succ++; else fail++;
+  tests++; if (T_shl_long()) succ++; else fail++;
+  tests++; if (T_shl_longlong()) succ++; else fail++;
+  tests++; if (T_shl_ssizet()) succ++; else fail++;
+  tests++; if (T_shl_u8())  succ++; else fail++;
+  tests++; if (T_shl_u16()) succ++; else fail++;
+  tests++; if (T_shl_u32()) succ++; else fail++;
+  tests++; if (T_shl_u64()) succ++; else fail++;
+  tests++; if (T_shl_ulong()) succ++; else fail++;
+  tests++; if (T_shl_ulonglong()) succ++; else fail++;
+  tests++; if (T_shl_sizet()) succ++; else fail++;
+
   tests++; if (T_div_s8())  succ++; else fail++;
   tests++; if (T_div_s16()) succ++; else fail++;
   tests++; if (T_div_s32()) succ++; else fail++;

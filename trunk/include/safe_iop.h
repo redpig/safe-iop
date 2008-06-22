@@ -4,7 +4,6 @@
  * 
  * To Do:
  * - Optimize safe type casting to perform minimal operations
- * - Add left shift support
  * - Add varargs style interface for safe_<op>()
  * - Add additional sizes to safe_iopf (currently 32-bit only)
  *   (this will make use of the safe conversion above)
@@ -455,11 +454,10 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
     safe_mod(&(__sio(var)(r)), __sio(var)(r), __sio(var)(d)) && \
     safe_mod((_ptr), __sio(var)(r), __sio(var)(e))); })
 
-/* start work on lshift:
- * Base on https://www.securecoding.cert.org/confluence/display/seccode/INT34-C.+Do+not+shift+a+negative+number+of+bits+or+more+bits+than+exist+in+the+operand
+/* XXX: does it matter if __a and __b are the same type?
+ *      signedness is useful to have incommon.
  */
-#if 0
-#define safe_lshift(_ptr, __a, __b) \
+#define safe_shl(_ptr, __a, __b) \
  ({ int __sio(var)(ok) = 0; \
     typeof(__a) __sio(var)(_a) = (__a), __sio(var)(_b); \
     typeof(_ptr) __sio(var)(p) = (_ptr); \
@@ -469,17 +467,39 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
                                              (__b)))) { \
       __sio(var)(_b) = (typeof(__a))(__b); \
       if (__sio(m)(is_signed)(__sio(var)(_a))) { \
-        __sio(var)(ok) = safe_slshift(__sio(var)(p), \
+        __sio(var)(ok) = safe_sshl(__sio(var)(p), \
                                       __sio(var)(_a), \
                                       __sio(var)(_b)); \
       } else { \
-        __sio(var)(ok) = safe_ulshift(__sio(var)(p), \
+        __sio(var)(ok) = safe_ushl(__sio(var)(p), \
                                      __sio(var)(_a), \
                                      __sio(var)(_b)); \
       } \
     } \
     __sio(var)(ok); })
-#endif
+
+#define safe_shr(_ptr, __a, __b) \
+ ({ int __sio(var)(ok) = 0; \
+    typeof(__a) __sio(var)(_a) = (__a), __sio(var)(_b); \
+    typeof(_ptr) __sio(var)(p) = (_ptr); \
+    if (__sio(m)(type_enforce)(__sio(var)(_a), (__b)) || \
+        __sio(m)(assert)(__sio(m)(safe_cast)(__sio(var)(_b), \
+                                             __sio(var)(_a), \
+                                             (__b)))) { \
+      __sio(var)(_b) = (typeof(__a))(__b); \
+      if (__sio(m)(is_signed)(__sio(var)(_a))) { \
+        __sio(var)(ok) = safe_sshr(__sio(var)(p), \
+                                      __sio(var)(_a), \
+                                      __sio(var)(_b)); \
+      } else { \
+        __sio(var)(ok) = safe_ushr(__sio(var)(p), \
+                                     __sio(var)(_a), \
+                                     __sio(var)(_b)); \
+      } \
+    } \
+    __sio(var)(ok); })
+
+
 
 
 
@@ -591,6 +611,48 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
       __sio(var)(ok) = 1; \
     } \
     __sio(var)(ok); })
+
+#define safe_sshl(_ptr, _a, _b) \
+ ({ int __sio(var)(ok) = 1; \
+    if (!((_a) >= 0) || \
+        !((_b) >= 0) || \
+        ((_b) >= sizeof(typeof(_a))*CHAR_BIT) || \
+        ((_a) > (__sio(m)(smax)(_a) >> (_b)))) \
+      __sio(var)(ok) = 0; \
+    else \
+      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) << (_b); } \
+    __sio(var)(ok); })
+
+#define safe_ushl(_ptr, _a, _b) \
+ ({ int __sio(var)(ok) = 1; \
+    if (((_b) >= sizeof(typeof(_a))*CHAR_BIT) || \
+        ((_a) > (__sio(m)(umax)(_a) >> (_b)))) \
+      __sio(var)(ok) = 0; \
+    else \
+      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) << (_b); } \
+    __sio(var)(ok); })
+
+/* XXX: CERT doesnt recommend failing on -a, but it is undefined */
+#define safe_sshr(_ptr, _a, _b) \
+ ({ int __sio(var)(ok) = 1; \
+    if (!((_a) >= 0) || \
+        !((_b) >= 0) || \
+        ((_b) >= sizeof(typeof(_a))*CHAR_BIT)) \
+      __sio(var)(ok) = 0; \
+    else \
+      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) >> (_b); } \
+    __sio(var)(ok); })
+
+/* this doesn't whine if 0 >> n. */
+#define safe_ushr(_ptr, _a, _b) \
+ ({ int __sio(var)(ok) = 1; \
+    if ((_b) >= sizeof(typeof(_a))*CHAR_BIT) \
+      __sio(var)(ok) = 0; \
+    else \
+      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) >> (_b); } \
+    __sio(var)(ok); })
+
+
 
 #if SAFE_IOP_COMPAT
 /* This is for compatibility with pre-0.3 versions.
