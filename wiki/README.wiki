@@ -4,6 +4,8 @@
 = Copyright and Licensing =
 See LICENSE in the distribution. This is covered under a BSD license.
 
+(Note, license applied on all work since 0.3 which was originally released into the public domain)
+
 = Introduction =
 
 Unsafe integer operations are a major cause of software defects even in modern
@@ -130,4 +132,3 @@ The changes and todo list can be found in include/safe_iop.h
 Please drop me an email if I'm doing something completely stupid, you love
 using the library, you have a patch or recommendation, or for whatever other
 reason.  I hope this software helps out a bit!
-
