@@ -3,6 +3,8 @@
 = Copyright and Licensing =
 See LICENSE in the distribution. This is covered under a BSD license.
 
+(Note, license applied on all work since 0.3 which was originally released into the public domain)
+
 = Introduction =
 
 Unsafe integer operations are a major cause of software defects even in modern
