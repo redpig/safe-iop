@@ -116,7 +116,7 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
       if ((__B) > (typeof(__B))0 || (__B) == (typeof(__B))0) \
         __sio(var)(__scOk) = 1; \
     } else if (__sio(m)(is_signed)(__A) && !__sio(m)(is_signed)(__B)) { \
-      /* XXX: this should safely truncate. I hope? */ \
+      /* since they are the same size, the comparison cast should be safe */ \
       if ((__B) < (typeof(__B))__sio(m)(smax)(__A) || \
           (__B) == (typeof(__B))__sio(m)(smax)(__A)) \
         __sio(var)(__scOk) = 1; \
