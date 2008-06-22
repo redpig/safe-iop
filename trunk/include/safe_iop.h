@@ -6,7 +6,6 @@
  * - Optimize safe type casting to perform minimal operations
  * - Add varargs style interface for safe_<op>()
  * - Add additional sizes to safe_iopf (currently 32-bit only)
- *   (this will make use of the safe conversion above)
  * - Add more test cases for interfaces (op_mixed)
  * - Add more tests for edge cases I've missed? and for thoroughness
  *
