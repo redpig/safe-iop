@@ -310,6 +310,8 @@ int T_add_s8() {
   a=0; EXPECT_TRUE(safe_inc(&a)); EXPECT_TRUE(a==1);
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=-10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=-10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SCHAR_MIN; b=SCHAR_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SCHAR_MIN+1; b=-1; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SCHAR_MAX/2; b=SCHAR_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -324,6 +326,8 @@ int T_add_s16() {
   a=SHRT_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=-10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=-10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SHRT_MIN; b=SHRT_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SHRT_MIN+1; b=-1; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SHRT_MAX/2; b=SHRT_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -338,6 +342,8 @@ int T_add_s32() {
   a=INT_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=-10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=-10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=INT_MIN; b=INT_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=INT_MIN+1; b=-1; EXPECT_TRUE(safe_add(NULL, a, b));
   a=INT_MAX/2; b=INT_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -352,6 +358,8 @@ int T_add_s64() {
   a=SAFE_INT64_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=-10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=-10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SAFE_INT64_MIN; b=SAFE_INT64_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SAFE_INT64_MIN+1; b=-1; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SAFE_INT64_MAX/2; b=SAFE_INT64_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -366,6 +374,8 @@ int T_add_long() {
   a=LONG_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=-10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=-10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=LONG_MIN; b=LONG_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=LONG_MIN+1; b=-1; EXPECT_TRUE(safe_add(NULL, a, b));
   a=LONG_MAX/2; b=LONG_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -379,6 +389,8 @@ int T_add_longlong() {
   a=LLONG_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=-10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=-10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=LLONG_MIN; b=LLONG_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=LLONG_MIN+1; b=-1; EXPECT_TRUE(safe_add(NULL, a, b));
   a=LLONG_MAX/2; b=LLONG_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
@@ -392,6 +404,8 @@ int T_add_ssizet() {
   a=SSIZE_MAX; EXPECT_FALSE(safe_inc(&a));
   a=10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=-10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=10; b=-11; EXPECT_TRUE(safe_add(NULL, a, b));
+  a=-10; b=11; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SSIZE_MIN; b=SSIZE_MAX; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SSIZE_MIN+1; b=-1; EXPECT_TRUE(safe_add(NULL, a, b));
   a=SSIZE_MAX/2; b=SSIZE_MAX/2; EXPECT_TRUE(safe_add(NULL, a, b));
