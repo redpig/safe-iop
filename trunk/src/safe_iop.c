@@ -1188,6 +1188,8 @@ int T_div_s8() {
   a=0; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   a=-100; b=0; EXPECT_FALSE(safe_div(NULL, a, b));
   a=-10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   return r;
 }
 
@@ -1200,6 +1202,8 @@ int T_div_s16() {
   a=0; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   a=-100; b=0; EXPECT_FALSE(safe_div(NULL, a, b));
   a=-10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   return r;
 }
 
@@ -1212,6 +1216,8 @@ int T_div_s32() {
   a=0; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   a=-100; b=0; EXPECT_FALSE(safe_div(NULL, a, b));
   a=-10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   return r;
 }
 
@@ -1224,6 +1230,8 @@ int T_div_s64() {
   a=0; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   a=-100; b=0; EXPECT_FALSE(safe_div(NULL, a, b));
   a=-10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   return r;
 }
 
@@ -1236,6 +1244,8 @@ int T_div_long() {
   a=0; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   a=-100; b=0; EXPECT_FALSE(safe_div(NULL, a, b));
   a=-10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   return r;
 }
 int T_div_longlong() {
@@ -1247,6 +1257,8 @@ int T_div_longlong() {
   a=0; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   a=-100LL; b=0LL; EXPECT_FALSE(safe_div(NULL, a, b));
   a=-10LL; b=-2LL; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   return r;
 }
 int T_div_ssizet() {
@@ -1258,6 +1270,8 @@ int T_div_ssizet() {
   a=0; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   a=-100; b=0; EXPECT_FALSE(safe_div(NULL, a, b));
   a=-10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   return r;
 }
 
