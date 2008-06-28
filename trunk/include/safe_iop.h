@@ -5,12 +5,15 @@
  * To Do:
  * - Optimize safe type casting to perform minimal operations
  * - Add varargs style interface for safe_<op>()
- * - Add additional sizes to safe_iopf (currently 32-bit only)
  * - Add more test cases for interfaces (op_mixed)
  * - Add more tests for edge cases I've missed? and for thoroughness
  *
  * History:
  * = 0.4
+ * - [BUG] Fixed signed addition. Two negatives were failing!
+ * - Added two negative tests to add T_add_*()s
+ * - Extended safe_iopf to support more types. Still needs more testing.
+ * - Added more mixed interface tests
  * - Added safe type casting (automagically)
  * - Added basic speed tests (not accurate at all yet)
  * - Added safe_inc/safe_dec
@@ -71,8 +74,14 @@
 #include <limits.h>  /* for CHAR_BIT */
 #include <assert.h>  /* for type enforcement */
 
-typedef enum { SAFE_IOP_TYPE_S32 = 1,
+typedef enum { SAFE_IOP_TYPE_U8 = 1,
+               SAFE_IOP_TYPE_S8,
+               SAFE_IOP_TYPE_U16,
+               SAFE_IOP_TYPE_S16,
                SAFE_IOP_TYPE_U32,
+               SAFE_IOP_TYPE_S32,
+               SAFE_IOP_TYPE_U64,
+               SAFE_IOP_TYPE_S64,
                SAFE_IOP_TYPE_DEFAULT = SAFE_IOP_TYPE_S32,
                } safe_type_t;
 
@@ -526,7 +535,7 @@ typedef enum { SAFE_IOP_TYPE_S32 = 1,
      if (((_b) > (typeof(_a))0) && ((_a) > (typeof(_a))0)) { /*>0*/ \
        if ((_a) > (typeof(_a))(__sio(m)(smax)(_a) - (_b))) __sio(var)(ok) = 0; \
      } else if (!((_b) > (typeof(_a))0) && !((_a) > (typeof(_a))0)) { /*<0*/ \
-       if ((_a) < (typeof(_a))(__sio(m)(smin)(_a) + (_b))) __sio(var)(ok) = 0; \
+       if ((_a) < (typeof(_a))(__sio(m)(smin)(_a) - (_b))) __sio(var)(ok) = 0; \
      } \
      if (__sio(var)(ok) && (_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) + (_b); } \
      __sio(var)(ok); })
