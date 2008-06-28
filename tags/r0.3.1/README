@@ -1,0 +1,136 @@
+safe_iop - a safe integer operation library for C
+Will Drewry <redpig@dataspill.org>
+
+= Copyright and Licensing
+Copyright 2007-2008, Will Drewry <redpig@dataspill.org>
+Some portions copyright 2008 Google Inc
+Released into the public domain with no warranty and no guarantees
+
+= Introduction
+
+Unsafe integer operations are a major cause of software defects even in modern
+day software.  C is the underlying language for most high level languages
+(Ruby, Python, Java, etc) in addition to being in widespread general use.
+C is a preferred language for high performance programming and is
+often used for media file parsing and manipulation. 
+
+Integer overflows occur when the calculated integer requires more storage from
+the computing platform than is available.  If a number is too large, not all of
+its information can be stored.  This has dangerous side effects. For a detailed
+and thorough discussion on integer overflows, please check out CERT's website
+on Secure Coding[1] and even Wikipedia[2].
+
+[1] https://www.securecoding.cert.org/confluence/display/seccode/CERT+C+Secure+Coding+Standard
+[2] http://en.wikipedia.org/wiki/Integer_overflow
+
+
+= Requirements
+
+safe_iop was designed explicitly with GNU GCC in mind and has only been tested
+with it.  Your mileage may vary.  Please let me know if it works for you with
+different compilers or on different platforms, and I'll update the Compatibility
+section below!
+
+In addition, your system must supply limits.h and assert.h for safe_iop to
+function as expected.  It is possible to remove the dependence on both, but it
+breaks general portability.
+
+= Usage
+
+safe_iop comes in two pieces, safe_iop.h and safe_iop.c.  safe_iop.h provides
+extensive macros for performing safe integer operations quickly and easily.
+safe_iop.c contains some testing code to make sure the package works on your
+system and a preliminary format string interface, safe_iopf.  safe_iopf is not
+for the faint of heart as it is currently under development.  The remainder of
+this document will focus on safe_iop.h.
+
+In order to use safe_iop, you will need to place safe_iop.h in your compiler's
+include path either by copying it somewhere like /usr/include, using an include
+flag -I/opt/safe_iop/include, or whatever other way you prefer. You will then
+need to include the header in the source file you will use the functions from.
+E.g., #include <safe_iop.h>
+
+safe_iop provides macros which check the validity of a given integer operation.
+It supports the following operations:
+- multiplication: safe_mul()
+- division:       safe_div()
+- addition:       safe_add()
+- subtraction:    safe_sub()
+
+All of these macros take a result pointer, or NULL, as the first argument.  The
+subsequent argument should be the two values to operate on.  They then return
+true or false depending on if the operation is safe or not. (If NULL is given,
+a true or false value will be returned.) 
+
+  uint32_t a = 100, b = 200, c = 0;
+  if (safe_mul(&c, a, b)) printf("c is %u\n", c);
+
+In addition, there are versions of these functions for multiple sequential operations:
+
+  uint32_t a = 100, b = 200, c = 300, d = 0;
+  if (safe_mul3(&d, a, b, c)) printf("d is %u\n", d);
+
+safe_<op>3-5() are all available.
+
+It is important to note that if the types of integers passed to safe_iop do not
+match, the operation will return false (0) with -DNDEBUG defined.  If it is not
+defined, assert() is called and the program will abort if these mismatch is
+seen!
+
+For example,
+  uint32_t a = 100, c = 0;
+  uint8_t b = 20;
+  if (safe_add(&c, a, b)) /* I will return false! */
+
+
+Examples can be found in the examples/ directory.
+
+== safe_iopf
+
+If you'd like to use the format string function, do so at your own peril :-)
+If you like it and would like to send me a patch to make it awesome, I'd
+appreciate it!  To use, just include the c file in your build, or build the
+shared library and link it to your app:
+  make so # or make dylib for OS X 
+  ...
+  gcc yourapp.c ... -lsafe_iop
+
+More to come!
+
+= Compatibility
+
+Tests pass on the following platforms:
+
+- OS X Tiger, x86, GNU GCC 4.0.1
+- OS X Leopard, x86, GNU GCC 4.0.1
+- GNU/Linux, x86, GNU GCC 4.0.3
+- GNU/Linux, x86_64, GNU GCC 4.0.3
+- OpenBSD, VAX, GNU GCC 2.95.3
+- OpenBSD, sparc, GNU GCC 2.95.3
+- OpenBSD, alpha, GNU GCC 3.3.5
+- OpenBSD, sparc, GNU GCC 2.95.3
+- OpenBSD, macppc, GNU GCC 3.3.5
+- OpenBSD, arm, GNU GCC 3.3.5 
+~ OpenBSD, sparc64, GNU GCC 3.3.5 [1]
+
+[1] For sparc64, there is an optimization bug which causes tests to fail if
+    -O<level> exceeds 1.
+
+= Credit where credit is do
+
+- The functions used in this library were largely drawn from the examples
+  provided in CERT's secure coding standard.
+- Thanks to peter@valchev.net for reviews, comments, enthusiasm, and multiple
+  platform tests!
+- Thanks to taviso@sdf.lonestar.org for the pointing out stupid API decisions
+  and cross-checking my logic.
+
+= Changes
+
+The changes and todo list can be found in include/safe_iop.h
+
+= Contributions, corrections, suggestions, flames . . .
+
+Please drop me an email if I'm doing something completely stupid, you love
+using the library, you have a patch or recommendation, or for whatever other
+reason.  I hope this software helps out a bit!
