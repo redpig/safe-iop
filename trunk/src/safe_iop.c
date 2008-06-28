@@ -562,6 +562,9 @@ int T_sub_s8() {
   a=SCHAR_MAX; b=SCHAR_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
   return r;
 }
 
@@ -576,6 +579,9 @@ int T_sub_s16() {
   a=SHRT_MAX; b=SHRT_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
   return r;
 }
 
@@ -590,6 +596,9 @@ int T_sub_s32() {
   a=INT_MAX; b=INT_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
   return r;
 }
 
@@ -604,6 +613,9 @@ int T_sub_s64() {
   a=SAFE_INT64_MAX; b=SAFE_INT64_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
   return r;
 }
 
@@ -618,6 +630,9 @@ int T_sub_long() {
   a=LONG_MAX; b=LONG_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
   return r;
 }
 
@@ -632,6 +647,9 @@ int T_sub_longlong() {
   a=LLONG_MAX; b=LLONG_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
   return r;
 }
 
@@ -646,6 +664,9 @@ int T_sub_ssizet() {
   a=SSIZE_MAX; b=SSIZE_MAX; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_sub(NULL, a, b));
   a=2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=2; b=-10; EXPECT_TRUE(safe_sub(NULL, a, b));
+  a=-2; b=10; EXPECT_TRUE(safe_sub(NULL, a, b));
   return r;
 }
 
