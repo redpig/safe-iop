@@ -31,9 +31,15 @@ static int _safe_op_read_type(safe_type_t *type, const char **c) {
   if (type == NULL) {
     return 0;
   }
-  if (c == NULL || *c == NULL || **c == '\0') {
+
+  if (c == NULL || *c == NULL) {
     return 0;
   }
+
+  /* Leave it as default if end of fmt */
+  if (**c == '\0')
+    return 1;
+
   /* Extract a type for the operation if there is one */
   if (strchr(SAFE_IOP_TYPE_PREFIXES, **c) != NULL) {
     switch(**c) {
@@ -87,17 +93,17 @@ static int _safe_op_read_type(safe_type_t *type, const char **c) {
  *      ADD TESTS!
  */
 #define _SAFE_IOP_TYPE_CASE(_lhs, _va_lhs, _rhs, _va_rhs, _func) { \
-  _rhs a; \
   _lhs value; \
+  _rhs a; \
   if (!baseline) { \
     value = (_lhs) va_arg(ap, _va_lhs); \
     a = (_rhs) va_arg(ap, _va_rhs); \
     baseline = 1; \
   } else { \
-    value = *((_lhs *) result);\
+    value = *((_lhs *) holder);\
     a = (_rhs) va_arg(ap, _va_rhs); \
   } \
-  if (! _func( ((_lhs *) result), value, a)) \
+  if (! _func( ((_lhs *) holder), value, a)) \
     return 0; \
 }
 
@@ -130,8 +136,6 @@ static int _safe_op_read_type(safe_type_t *type, const char **c) {
     default: \
       return 0; \
   }
-
-
 
 #define _SAFE_IOP_OP_CASE_LHS(_FUNC) \
   switch (lhs) { \
@@ -168,20 +172,26 @@ int safe_iopf(void *result, const char *const fmt, ...) {
   int baseline = 0; /* indicates if the base value is present */
 
   const char *c = NULL;
+  /* Holds the interim values and allows for result to be NULL.
+   * Width is expressed in CHAR_BITs using sizeof.
+   */
+  unsigned char holder[SAFE_IOPF_MAX_WIDTH] = {0};
   safe_type_t lhs = SAFE_IOP_TYPE_DEFAULT, rhs = SAFE_IOP_TYPE_DEFAULT;
-  /* Result should not be NULL */
-  if (!result)
-    return 0;
 
   va_start(ap, fmt);
   if (fmt == NULL || fmt[0] == '\0')
     return 0;
-  for(c=fmt;(*c);) {
-    /* Read the left-hand side type for the operation type if given */
-    if (!_safe_op_read_type(&lhs, &c)) {
-      return 0;
-    }
 
+  /* Read the left-hand side type for the operation type if giveṅ.
+   * safe_iop(f) always casts to the left so this is only read once
+   * then carried through.
+   */
+  c=fmt;
+  if (!_safe_op_read_type(&lhs, &c)) {
+    return 0;
+  }
+
+  while (*c) {
     /* Process the the operations */
     switch(*(c++)) { /* operation */
       case '+': /* add */
@@ -236,10 +246,43 @@ int safe_iopf(void *result, const char *const fmt, ...) {
        /* unknown op */
        return 0;
     }
-    /* Reset the type */
-   lhs = SAFE_IOP_TYPE_DEFAULT, rhs = SAFE_IOP_TYPE_DEFAULT;
+    /* Once the lhs type is given, this becomes the default for
+     * all remaining operands
+     */
+   rhs = lhs;
   }
-  /* Success! */
+  /* Success! Assign the holder value back to result using the stored lhs */
+  if (result) {
+    switch (lhs) {
+      case SAFE_IOP_TYPE_U8:
+        *((uint8_t *)result) = *((uint8_t *)holder);
+        break;
+      case SAFE_IOP_TYPE_S8:
+        *((int8_t *)result) = *((int8_t *)holder);
+        break;
+      case SAFE_IOP_TYPE_U16:
+        *((uint16_t *)result) = *((uint16_t *)holder);
+        break;
+      case SAFE_IOP_TYPE_S16:
+        *((int16_t *)result) = *((int16_t *)holder);
+        break;
+      case SAFE_IOP_TYPE_U32:
+        *((uint32_t *)result) = *((uint32_t *)holder);
+        break;
+      case SAFE_IOP_TYPE_S32:
+        *((int32_t *)result) = *((int32_t *)holder);
+        break;
+      case SAFE_IOP_TYPE_U64:
+        *((uint64_t *)result) = *((uint64_t *)holder);
+        break;
+      case SAFE_IOP_TYPE_S64:
+        *((int64_t *)result) = *((int64_t *)holder);
+        break;
+      default:
+        /* bad sign. maybe this should abort. */
+        return 0;
+    }
+  }
   return 1;
 }
 
@@ -286,17 +329,28 @@ int safe_iopf(void *result, const char *const fmt, ...) {
 #endif
 
 #define EXPECT_FALSE(cmd) ({ \
-  printf("%s: EXPECT_FALSE(" #cmd ") => ", __func__); \
+  printf("%s:%d:%s: EXPECT_FALSE(" #cmd ") => ", __FILE__, __LINE__, __func__); \
   if ((cmd) != 0) { printf(" FAILED\n"); expect_fail++; r = 0; } \
   else { printf(" PASSED\n"); expect_succ++; } \
   expect++; \
   })
 #define EXPECT_TRUE(cmd) ({ \
-  printf("%s: EXPECT_TRUE(" #cmd ") => ", __func__); \
+  printf("%s:%d:%s: EXPECT_TRUE(" #cmd ") => ", __FILE__, __LINE__, __func__); \
   if ((cmd) != 1) { printf(" FAILED\n"); expect_fail++; r = 0; } \
   else { printf(" PASSED\n"); expect_succ++; } \
-  expect++;  \
+  expect++; \
   })
+/* Not perfect, but good for basic debugging */
+#define EXPECT_EQUAL(lhs,rhs) ({ \
+  printf("%s:%d:%s: EXPECT_EQUAL(" #lhs " == " #rhs ") -> ", \
+         __FILE__, __LINE__, __func__); \
+  printf("(%d == %d) => ", (int)(lhs), (int)(rhs)); \
+  if ((lhs)!=(rhs)) { printf(" FAILED\n"); expect_fail++; r = 0; } \
+  else { printf(" PASSED\n"); expect_succ++; } \
+  expect++; \
+  })
+
+
 
 static int expect = 0, expect_succ = 0, expect_fail = 0;
 
@@ -519,6 +573,15 @@ int T_add_mixed() {
   a=1;b=1;c=USHRT_MAX-3; EXPECT_FALSE(safe_add3(NULL, a, b, c));
   a=1;b=1;c=1; EXPECT_TRUE(safe_add3(NULL, a, b, c));
   a=1;b=1;c=SCHAR_MAX-3; EXPECT_TRUE(safe_add3(NULL, a, b, c));
+  a=-1;b=10; EXPECT_TRUE(safe_add(NULL, a, b));
+  /* Signed negative numbers are not allowed, even if the result does
+   * not underflow.  This is due to the "safe casting" performed prior to
+   * the operation.  Since it is operation ignorant, we can't guess what's
+   * safe. This means that safe_sub should be used.
+   */
+  a=-1;b=10; EXPECT_FALSE(safe_add(NULL, b, a));
+  a=1;b=10; EXPECT_TRUE(safe_sub(NULL, b, a));
+  a=-1;b=0; EXPECT_FALSE(safe_add(NULL, b, a));
   return r;
 }
 
@@ -527,22 +590,22 @@ int T_add_increment() {
   uint16_t a = 1, b = 2, c = 0, d[2]= {0};
   uint16_t *cur = d;
   EXPECT_TRUE(safe_add(cur++, a++, b));
-  EXPECT_TRUE(cur == &d[1]);
-  EXPECT_TRUE(d[0] == 3);
-  EXPECT_TRUE(a == 2);
+  EXPECT_EQUAL(cur, &d[1]);
+  EXPECT_EQUAL(d[0], 3);
+  EXPECT_EQUAL(a, 2);
   a = 1; b = 2; c = 1; cur=d;d[0] = 0;
   EXPECT_TRUE(safe_add3(cur++, a++, b++, c));
-  EXPECT_TRUE(d[0] == 4);
-  EXPECT_TRUE(cur == &d[1]);
-  EXPECT_TRUE(a == 2);
-  EXPECT_TRUE(b == 3);
-  EXPECT_TRUE(c == 1);
+  EXPECT_EQUAL(d[0], 4);
+  EXPECT_EQUAL(cur, &d[1]);
+  EXPECT_EQUAL(a, 2);
+  EXPECT_EQUAL(b, 3);
+  EXPECT_EQUAL(c, 1);
   a = 1; b = 2; cur=d;d[0] = 0;
   EXPECT_TRUE(safe_add(cur++, a++, b++));
-  EXPECT_TRUE(d[0] == 3);
-  EXPECT_TRUE(cur == &d[1]);
-  EXPECT_TRUE(a == 2);
-  EXPECT_TRUE(b == 3);
+  EXPECT_EQUAL(d[0], 3);
+  EXPECT_EQUAL(cur, &d[1]);
+  EXPECT_EQUAL(a, 2);
+  EXPECT_EQUAL(b, 3);
 
   return r;
 }
@@ -1060,6 +1123,10 @@ int T_mod_s8() {
   a=SCHAR_MIN; b=-1; EXPECT_FALSE(safe_mod(NULL, a, b));
   a=100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=-100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   return r;
 }
 
@@ -1067,6 +1134,10 @@ int T_mod_s16() {
   int r=1;
   int16_t a, b;
   a=SHRT_MIN; b=-1; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   a=100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   return r;
@@ -1077,6 +1148,10 @@ int T_mod_s32() {
   int32_t a, b;
   a=INT_MIN; b=-1; EXPECT_FALSE(safe_mod(NULL, a, b));
   a=100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   return r;
 }
@@ -1086,6 +1161,10 @@ int T_mod_s64() {
   int64_t a, b;
   a=SAFE_INT64_MIN; b=-1; EXPECT_FALSE(safe_mod(NULL, a, b));
   a=100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   return r;
 }
@@ -1095,6 +1174,10 @@ int T_mod_long() {
   long a, b;
   a=LONG_MIN; b=-1; EXPECT_FALSE(safe_mod(NULL, a, b));
   a=100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   return r;
 }
@@ -1103,6 +1186,10 @@ int T_mod_longlong() {
   long long a, b;
   a=LLONG_MIN; b=-1LL; EXPECT_FALSE(safe_mod(NULL, a, b));
   a=100LL; b=0LL; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-100LL; b=0LL; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-10LL; b=-2LL; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=10LL; b=-2LL; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=-10LL; b=2LL; EXPECT_TRUE(safe_mod(NULL, a, b));
   a=10LL; b=2LL; EXPECT_TRUE(safe_mod(NULL, a, b));
   return r;
 }
@@ -1111,6 +1198,10 @@ int T_mod_ssizet() {
   ssize_t a, b;
   a=SSIZE_MIN; b=-1; EXPECT_FALSE(safe_mod(NULL, a, b));
   a=100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-100; b=0; EXPECT_FALSE(safe_mod(NULL, a, b));
+  a=-10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=10; b=-2; EXPECT_TRUE(safe_mod(NULL, a, b));
+  a=-10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   a=10; b=2; EXPECT_TRUE(safe_mod(NULL, a, b));
   return r;
 }
@@ -1257,8 +1348,8 @@ int T_div_longlong() {
   a=0; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
   a=-100LL; b=0LL; EXPECT_FALSE(safe_div(NULL, a, b));
   a=-10LL; b=-2LL; EXPECT_TRUE(safe_div(NULL, a, b));
-  a=10; b=-2; EXPECT_TRUE(safe_div(NULL, a, b));
-  a=-10; b=2; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=10LL; b=-2LL; EXPECT_TRUE(safe_div(NULL, a, b));
+  a=-10LL; b=2LL; EXPECT_TRUE(safe_div(NULL, a, b));
   return r;
 }
 int T_div_ssizet() {
@@ -1676,26 +1767,24 @@ int T_shr_sizet() {
 
 int T_iopf_null() {
   int r=1;
-  EXPECT_FALSE(safe_iopf(NULL, "+", 1, 1));
+  EXPECT_TRUE(safe_iopf(NULL, "+", 1, 1));
   return r;
 }
 
 /* Ensure that arguments can also be targets */
-#if 0 /* TODO */
 int T_iopf_self() {
   int r=1;
   int a = 10, b = 20, c = 30;
   EXPECT_TRUE(safe_iopf(&a, "+", a, b));
-  EXPECT_TRUE(a == 30);
+  EXPECT_EQUAL(a, 30);
   a = 10, b = 20;
   EXPECT_TRUE(safe_iopf(&b, "+", a, b));
-  EXPECT_TRUE(b == 30);
+  EXPECT_EQUAL(b, 30);
   a = 30, b = 20, c = 10;
   EXPECT_TRUE(safe_iopf(&c, "++", a, b, c));
-  EXPECT_TRUE(c == 60);
+  EXPECT_EQUAL(c, 60);
   return r;
 }
-#endif
 
 
 /*** IOPF ADD ***/
@@ -1704,17 +1793,17 @@ int T_iopf_add_u8u8() {
   int r=1;
   uint8_t a, b, c;
   a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u8+u8", a, b));
-                     EXPECT_TRUE(c == 20);
+                     EXPECT_EQUAL(c, 20);
   a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u8+u8", a, b));
-                   EXPECT_TRUE(c == 0);
+                   EXPECT_EQUAL(c, 0);
   a=UCHAR_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "u8+u8", a, b));
-                           EXPECT_TRUE(c == UCHAR_MAX);
+                           EXPECT_EQUAL(c, UCHAR_MAX);
   a=UCHAR_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "u8+u8", a, b));
-                         EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
   a=UCHAR_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "u8+u8", b, a));
-                           EXPECT_TRUE(c == UCHAR_MAX);
+                           EXPECT_EQUAL(c, UCHAR_MAX);
   a=UCHAR_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "u8+u8", b, a));
-                         EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
 
   return r;
 }
@@ -1723,13 +1812,13 @@ int T_iopf_add_u16u16() {
   int r=1;
   uint16_t a, b, c;
   a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u16+u16", a, b));
-                     EXPECT_TRUE(c == 20);
+                     EXPECT_EQUAL(c, 20);
   a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u16+u16", a, b));
-                   EXPECT_TRUE(c == 0);
+                   EXPECT_EQUAL(c, 0);
   a=USHRT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "u16+u16", a, b));
-                           EXPECT_TRUE(c == USHRT_MAX);
+                           EXPECT_EQUAL(c, USHRT_MAX);
   a=USHRT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "u16+u16", a, b));
-                         EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
   return r;
 }
 
@@ -1737,13 +1826,13 @@ int T_iopf_add_u32u32() {
   int r=1;
   uint32_t a, b, c;
   a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u32+u32", a, b));
-                     EXPECT_TRUE(c == 20);
+                     EXPECT_EQUAL(c, 20);
   a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u32+u32", a, b));
-                   EXPECT_TRUE(c == 0);
+                   EXPECT_EQUAL(c, 0);
   a=UINT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "u32+u32", a, b));
-                          EXPECT_TRUE(c == UINT_MAX);
+                          EXPECT_EQUAL(c, UINT_MAX);
   a=UINT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "u32+u32", a, b));
-                        EXPECT_TRUE(c == 0);
+                        EXPECT_EQUAL(c, 0);
   return r;
 }
 
@@ -1751,13 +1840,13 @@ int T_iopf_add_u64u64() {
   int r=1;
   uint64_t a, b, c;
   a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u64+u64", a, b));
-                     EXPECT_TRUE(c == 20);
+                     EXPECT_EQUAL(c, 20);
   a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u64+u64", a, b));
-                   EXPECT_TRUE(c == 0);
+                   EXPECT_EQUAL(c, 0);
   a=SAFE_UINT64_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "u64+u64", a, b));
-                                 EXPECT_TRUE(c == SAFE_UINT64_MAX);
+                                 EXPECT_EQUAL(c, SAFE_UINT64_MAX);
   a=SAFE_UINT64_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "u64+u64", a, b));
-                               EXPECT_TRUE(c == 0);
+                               EXPECT_EQUAL(c, 0);
   return r;
 }
 
@@ -1765,25 +1854,25 @@ int T_iopf_add_s8s8() {
   int r=1;
   int8_t a, b, c;
   a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s8+s8", a, b));
-                     EXPECT_TRUE(c == 20);
+                     EXPECT_EQUAL(c, 20);
   a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s8+s8", a, b));
-                   EXPECT_TRUE(c == 0);
+                   EXPECT_EQUAL(c, 0);
   a=SCHAR_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s8+s8", a, b));
-                           EXPECT_TRUE(c == SCHAR_MAX);
+                           EXPECT_EQUAL(c, SCHAR_MAX);
   a=SCHAR_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s8+s8", a, b));
-                        EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
   a=SCHAR_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s8+s8", b, a));
-                          EXPECT_TRUE(c == SCHAR_MAX);
+                           EXPECT_EQUAL(c, SCHAR_MAX);
   a=SCHAR_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s8+s8", b, a));
-                        EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
   a=SCHAR_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s8+s8", a, b));
-                           EXPECT_TRUE(c == SCHAR_MIN);
+                            EXPECT_EQUAL(c, SCHAR_MIN);
   a=SCHAR_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s8+s8", a, b));
-                         EXPECT_TRUE(c == 0);
+                          EXPECT_EQUAL(c, 0);
   a=SCHAR_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s8+s8", b, a));
-                           EXPECT_TRUE(c == SCHAR_MIN);
+                            EXPECT_EQUAL(c, SCHAR_MIN);
   a=SCHAR_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s8+s8", b, a));
-                         EXPECT_TRUE(c == 0);
+                          EXPECT_EQUAL(c, 0);
   return r;
 }
 
@@ -1791,25 +1880,25 @@ int T_iopf_add_s16s16() {
   int r=1;
   int16_t a, b, c;
   a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s16+s16", a, b));
-                     EXPECT_TRUE(c == 20);
+                     EXPECT_EQUAL(c, 20);
   a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s16+s16", a, b));
-                   EXPECT_TRUE(c == 0);
+                   EXPECT_EQUAL(c, 0);
   a=SHRT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s16+s16", a, b));
-                           EXPECT_TRUE(c == SHRT_MAX);
+                           EXPECT_EQUAL(c, SHRT_MAX);
   a=SHRT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s16+s16", a, b));
-                        EXPECT_TRUE(c == 0);
+                        EXPECT_EQUAL(c, 0);
   a=SHRT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s16+s16", b, a));
-                          EXPECT_TRUE(c == SHRT_MAX);
+                          EXPECT_EQUAL(c, SHRT_MAX);
   a=SHRT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s16+s16", b, a));
-                        EXPECT_TRUE(c == 0);
+                        EXPECT_EQUAL(c, 0);
   a=SHRT_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s16+s16", a, b));
-                           EXPECT_TRUE(c == SHRT_MIN);
+                           EXPECT_EQUAL(c, SHRT_MIN);
   a=SHRT_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s16+s16", a, b));
-                         EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
   a=SHRT_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s16+s16", b, a));
-                           EXPECT_TRUE(c == SHRT_MIN);
+                           EXPECT_EQUAL(c, SHRT_MIN);
   a=SHRT_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s16+s16", b, a));
-                         EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
   return r;
 }
 
@@ -1818,25 +1907,25 @@ int T_iopf_add_s32s32() {
   int r=1;
   int32_t a, b, c;
   a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s32+s32", a, b));
-                     EXPECT_TRUE(c == 20);
+                     EXPECT_EQUAL(c, 20);
   a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s32+s32", a, b));
-                   EXPECT_TRUE(c == 0);
+                   EXPECT_EQUAL(c, 0);
   a=INT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s32+s32", a, b));
-                           EXPECT_TRUE(c == INT_MAX);
+                           EXPECT_EQUAL(c, INT_MAX);
   a=INT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s32+s32", a, b));
-                        EXPECT_TRUE(c == 0);
+                        EXPECT_EQUAL(c, 0);
   a=INT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s32+s32", b, a));
-                          EXPECT_TRUE(c == INT_MAX);
+                          EXPECT_EQUAL(c, INT_MAX);
   a=INT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s32+s32", b, a));
-                        EXPECT_TRUE(c == 0);
+                        EXPECT_EQUAL(c, 0);
   a=INT_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s32+s32", a, b));
-                           EXPECT_TRUE(c == INT_MIN);
+                           EXPECT_EQUAL(c, INT_MIN);
   a=INT_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s32+s32", a, b));
-                         EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
   a=INT_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s32+s32", b, a));
-                           EXPECT_TRUE(c == INT_MIN);
+                           EXPECT_EQUAL(c, INT_MIN);
   a=INT_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s32+s32", b, a));
-                         EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
   return r;
 }
 
@@ -1845,25 +1934,25 @@ int T_iopf_add_s64s64() {
   int r=1;
   int64_t a, b, c;
   a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s64+s64", a, b));
-                     EXPECT_TRUE(c == 20);
+                     EXPECT_EQUAL(c, 20);
   a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s64+s64", a, b));
-                   EXPECT_TRUE(c == 0);
+                   EXPECT_EQUAL(c, 0);
   a=SAFE_INT64_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s64+s64", a, b));
-                           EXPECT_TRUE(c == SAFE_INT64_MAX);
+                           EXPECT_EQUAL(c, SAFE_INT64_MAX);
   a=SAFE_INT64_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s64+s64", a, b));
-                        EXPECT_TRUE(c == 0);
+                        EXPECT_EQUAL(c, 0);
   a=SAFE_INT64_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s64+s64", b, a));
-                          EXPECT_TRUE(c == SAFE_INT64_MAX);
+                          EXPECT_EQUAL(c, SAFE_INT64_MAX);
   a=SAFE_INT64_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s64+s64", b, a));
-                        EXPECT_TRUE(c == 0);
+                        EXPECT_EQUAL(c, 0);
   a=SAFE_INT64_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s64+s64", a, b));
-                           EXPECT_TRUE(c == SAFE_INT64_MIN);
+                           EXPECT_EQUAL(c, SAFE_INT64_MIN);
   a=SAFE_INT64_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s64+s64", a, b));
-                         EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
   a=SAFE_INT64_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s64+s64", b, a));
-                           EXPECT_TRUE(c == SAFE_INT64_MIN);
+                           EXPECT_EQUAL(c, SAFE_INT64_MIN);
   a=SAFE_INT64_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s64+s64", b, a));
-                         EXPECT_TRUE(c == 0);
+                         EXPECT_EQUAL(c, 0);
   return r;
 }
 
@@ -1871,113 +1960,232 @@ int T_iopf_add_s64s64() {
 int T_iopf_mul_u8u8() {
   int r=1;
   uint8_t a, b, c;
-  a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u8+u8", a, b));
-                     EXPECT_TRUE(c == 20);
-  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u8+u8", a, b));
-                   EXPECT_TRUE(c == 0);
-  a=UCHAR_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "u8+u8", a, b));
-                           EXPECT_TRUE(c == UCHAR_MAX);
-  a=UCHAR_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "u8+u8", a, b));
-                         EXPECT_TRUE(c == 0);
-  a=UCHAR_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "u8+u8", b, a));
-                           EXPECT_TRUE(c == UCHAR_MAX);
-  a=UCHAR_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "u8+u8", b, a));
-                         EXPECT_TRUE(c == 0);
-
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "u8*u8", a, b));
+                     EXPECT_EQUAL(c, 100);
+  a=10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u8*u8", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u8*u8", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u8*u8", a, b));
+                   EXPECT_EQUAL(c, 0);
+  a=UCHAR_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "u8*u8", a, b));
+                           EXPECT_EQUAL(c, UCHAR_MAX/2*2);
+  a=UCHAR_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "u8*u8", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=UCHAR_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "u8*u8", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=UCHAR_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "u8*u8", b, a));
+                           EXPECT_EQUAL(c, UCHAR_MAX/2*2);
+  a=UCHAR_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "u8*u8", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=UCHAR_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "u8*u8", b, a));
+                             EXPECT_EQUAL(c, 0);
   return r;
 }
 
 int T_iopf_mul_u16u16() {
   int r=1;
   uint16_t a, b, c;
-  a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u16+u16", a, b));
-                     EXPECT_TRUE(c == 20);
-  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u16+u16", a, b));
-                   EXPECT_TRUE(c == 0);
-  a=USHRT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "u16+u16", a, b));
-                           EXPECT_TRUE(c == USHRT_MAX);
-  a=USHRT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "u16+u16", a, b));
-                         EXPECT_TRUE(c == 0);
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "u16*u16", a, b));
+                     EXPECT_EQUAL(c, 100);
+  a=10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u16*u16", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u16*u16", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u16*u16", a, b));
+                   EXPECT_EQUAL(c, 0);
+  a=USHRT_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "u16*u16", a, b));
+                           EXPECT_EQUAL(c, USHRT_MAX/2*2);
+  a=USHRT_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "u16*u16", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=USHRT_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "u16*u16", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=USHRT_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "u16*u16", b, a));
+                           EXPECT_EQUAL(c, USHRT_MAX/2*2);
+  a=USHRT_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "u16*u16", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=USHRT_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "u16*u16", b, a));
+                             EXPECT_EQUAL(c, 0);
   return r;
 }
 
 int T_iopf_mul_u32u32() {
   int r=1;
   uint32_t a, b, c;
-  a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u32+u32", a, b));
-                     EXPECT_TRUE(c == 20);
-  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u32+u32", a, b));
-                   EXPECT_TRUE(c == 0);
-  a=UINT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "u32+u32", a, b));
-                          EXPECT_TRUE(c == UINT_MAX);
-  a=UINT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "u32+u32", a, b));
-                        EXPECT_TRUE(c == 0);
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "u32*u32", a, b));
+                     EXPECT_EQUAL(c, 100);
+  a=10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u32*u32", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u32*u32", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u32*u32", a, b));
+                   EXPECT_EQUAL(c, 0);
+  a=UINT_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "u32*u32", a, b));
+                           EXPECT_EQUAL(c, UINT_MAX/2*2);
+  a=UINT_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "u32*u32", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=UINT_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "u32*u32", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=UINT_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "u32*u32", b, a));
+                           EXPECT_EQUAL(c, UINT_MAX/2*2);
+  a=UINT_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "u32*u32", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=UINT_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "u32*u32", b, a));
+                             EXPECT_EQUAL(c, 0);
   return r;
 }
+
+int T_iopf_mul_u32u32u32() {
+  int r=1;
+  uint32_t a, b, c;
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "u32*u32*u32", a, b, c));
+                     EXPECT_EQUAL(c, 1000);
+  a=10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u32*u32*u32", a, b, c));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u32*u32*u32", a, b, c));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u32*u32*u32", a, b, c));
+                   EXPECT_EQUAL(c, 0);
+  a=UINT_MAX/2, b=2, c=1; EXPECT_TRUE(safe_iopf(&c, "u32*u32*u32", a, b, c));
+                          EXPECT_EQUAL(c, UINT_MAX/2*2);
+  /* This should fail before the 0 can be considered */
+  a=UINT_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "u32*u32*u32", a, b, c));
+                            EXPECT_EQUAL(c, 0);
+  /* The most common case: w*h*d */
+  a=1000, b=1000, c=8; EXPECT_TRUE(safe_iopf(&c, "u32*u32*u32", a, b, c));
+                          EXPECT_EQUAL(c, 8000000);
+  return r;
+}
+
+
 
 int T_iopf_mul_u64u64() {
   int r=1;
   uint64_t a, b, c;
-  a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u64+u64", a, b));
-                     EXPECT_TRUE(c == 20);
-  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u64+u64", a, b));
-                   EXPECT_TRUE(c == 0);
-  a=SAFE_UINT64_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "u64+u64", a, b));
-                                 EXPECT_TRUE(c == SAFE_UINT64_MAX);
-  a=SAFE_UINT64_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "u64+u64", a, b));
-                               EXPECT_TRUE(c == 0);
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "u64*u64", a, b));
+                     EXPECT_EQUAL(c, 100);
+  a=10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u64*u64", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "u64*u64", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "u64*u64", a, b));
+                   EXPECT_EQUAL(c, 0);
+  a=SAFE_UINT64_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "u64*u64", a, b));
+                           EXPECT_EQUAL(c, SAFE_UINT64_MAX/2*2);
+  a=SAFE_UINT64_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "u64*u64", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SAFE_UINT64_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "u64*u64", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SAFE_UINT64_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "u64*u64", b, a));
+                           EXPECT_EQUAL(c, SAFE_UINT64_MAX/2*2);
+  a=SAFE_UINT64_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "u64*u64", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SAFE_UINT64_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "u64*u64", b, a));
+                             EXPECT_EQUAL(c, 0);
   return r;
 }
 
 int T_iopf_mul_s8s8() {
   int r=1;
   int8_t a, b, c;
-  a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s8+s8", a, b));
-                     EXPECT_TRUE(c == 20);
-  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s8+s8", a, b));
-                   EXPECT_TRUE(c == 0);
-  a=SCHAR_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s8+s8", a, b));
-                           EXPECT_TRUE(c == SCHAR_MAX);
-  a=SCHAR_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s8+s8", a, b));
-                        EXPECT_TRUE(c == 0);
-  a=SCHAR_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s8+s8", b, a));
-                          EXPECT_TRUE(c == SCHAR_MAX);
-  a=SCHAR_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s8+s8", b, a));
-                        EXPECT_TRUE(c == 0);
-  a=SCHAR_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s8+s8", a, b));
-                           EXPECT_TRUE(c == SCHAR_MIN);
-  a=SCHAR_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s8+s8", a, b));
-                         EXPECT_TRUE(c == 0);
-  a=SCHAR_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s8+s8", b, a));
-                           EXPECT_TRUE(c == SCHAR_MIN);
-  a=SCHAR_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s8+s8", b, a));
-                         EXPECT_TRUE(c == 0);
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                     EXPECT_EQUAL(c, 100);
+  a=-10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                     EXPECT_EQUAL(c, -100);
+  a=10 ,b=-10, c=10; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                     EXPECT_EQUAL(c, -100);
+  a=10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=-10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                     EXPECT_EQUAL(c, 0);
+  a=0 ,b=-10, c=100; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                     EXPECT_EQUAL(c, 0);
+  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                   EXPECT_EQUAL(c, 0);
+  a=SCHAR_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                           EXPECT_EQUAL(c, SCHAR_MAX/2*2);
+  a=SCHAR_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s8*s8", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SCHAR_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s8*s8", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SCHAR_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s8*s8", b, a));
+                           EXPECT_EQUAL(c, SCHAR_MAX/2*2);
+  a=SCHAR_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s8*s8", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SCHAR_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s8*s8", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SCHAR_MIN/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                           EXPECT_EQUAL(c, SCHAR_MIN);
+  a=SCHAR_MIN/2-1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s8*s8", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SCHAR_MIN/4-1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s8*s8", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=(SCHAR_MIN+4)/4, b=-4, c=0; EXPECT_TRUE(safe_iopf(&c, "s8*s8", a, b));
+                            EXPECT_EQUAL(c, SCHAR_MAX-3);
+  a=SCHAR_MIN/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s8*s8", b, a));
+                           EXPECT_EQUAL(c, SCHAR_MIN);
+  a=SCHAR_MIN/2-1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s8*s8", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SCHAR_MIN/4-1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s8*s8", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SCHAR_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s8*s8", b, a));
+                          EXPECT_EQUAL(c, 0);
+  a=SCHAR_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s8*s8", b, a));
+                            EXPECT_EQUAL(c, -(SCHAR_MIN+1));
   return r;
 }
 
 int T_iopf_mul_s16s16() {
   int r=1;
   int16_t a, b, c;
-  a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s16+s16", a, b));
-                     EXPECT_TRUE(c == 20);
-  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s16+s16", a, b));
-                   EXPECT_TRUE(c == 0);
-  a=SHRT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s16+s16", a, b));
-                           EXPECT_TRUE(c == SHRT_MAX);
-  a=SHRT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s16+s16", a, b));
-                        EXPECT_TRUE(c == 0);
-  a=SHRT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s16+s16", b, a));
-                          EXPECT_TRUE(c == SHRT_MAX);
-  a=SHRT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s16+s16", b, a));
-                        EXPECT_TRUE(c == 0);
-  a=SHRT_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s16+s16", a, b));
-                           EXPECT_TRUE(c == SHRT_MIN);
-  a=SHRT_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s16+s16", a, b));
-                         EXPECT_TRUE(c == 0);
-  a=SHRT_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s16+s16", b, a));
-                           EXPECT_TRUE(c == SHRT_MIN);
-  a=SHRT_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s16+s16", b, a));
-                         EXPECT_TRUE(c == 0);
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                     EXPECT_EQUAL(c, 100);
+  a=-10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                     EXPECT_EQUAL(c, -100);
+  a=10 ,b=-10, c=10; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                     EXPECT_EQUAL(c, -100);
+  a=10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=-10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                     EXPECT_EQUAL(c, 0);
+  a=0 ,b=-10, c=100; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                     EXPECT_EQUAL(c, 0);
+  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                   EXPECT_EQUAL(c, 0);
+  a=SHRT_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                           EXPECT_EQUAL(c, SHRT_MAX/2*2);
+  a=SHRT_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s16*s16", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SHRT_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s16*s16", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SHRT_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s16*s16", b, a));
+                           EXPECT_EQUAL(c, SHRT_MAX/2*2);
+  a=SHRT_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s16*s16", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SHRT_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s16*s16", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SHRT_MIN/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                           EXPECT_EQUAL(c, SHRT_MIN);
+  a=SHRT_MIN/2-1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s16*s16", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SHRT_MIN/4-1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s16*s16", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=(SHRT_MIN+4)/4, b=-4, c=0; EXPECT_TRUE(safe_iopf(&c, "s16*s16", a, b));
+                            EXPECT_EQUAL(c, SHRT_MAX-3);
+  a=SHRT_MIN/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s16*s16", b, a));
+                           EXPECT_EQUAL(c, SHRT_MIN);
+  a=SHRT_MIN/2-1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s16*s16", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SHRT_MIN/4-1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s16*s16", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SHRT_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s16*s16", b, a));
+                          EXPECT_EQUAL(c, 0);
+  a=SHRT_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s16*s16", b, a));
+                            EXPECT_EQUAL(c, -(SHRT_MIN+1));
   return r;
 }
 
@@ -1985,26 +2193,52 @@ int T_iopf_mul_s16s16() {
 int T_iopf_mul_s32s32() {
   int r=1;
   int32_t a, b, c;
-  a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s32+s32", a, b));
-                     EXPECT_TRUE(c == 20);
-  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s32+s32", a, b));
-                   EXPECT_TRUE(c == 0);
-  a=INT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s32+s32", a, b));
-                           EXPECT_TRUE(c == INT_MAX);
-  a=INT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s32+s32", a, b));
-                        EXPECT_TRUE(c == 0);
-  a=INT_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s32+s32", b, a));
-                          EXPECT_TRUE(c == INT_MAX);
-  a=INT_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s32+s32", b, a));
-                        EXPECT_TRUE(c == 0);
-  a=INT_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s32+s32", a, b));
-                           EXPECT_TRUE(c == INT_MIN);
-  a=INT_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s32+s32", a, b));
-                         EXPECT_TRUE(c == 0);
-  a=INT_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s32+s32", b, a));
-                           EXPECT_TRUE(c == INT_MIN);
-  a=INT_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s32+s32", b, a));
-                         EXPECT_TRUE(c == 0);
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                     EXPECT_EQUAL(c, 100);
+  a=-10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                     EXPECT_EQUAL(c, -100);
+  a=10 ,b=-10, c=10; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                     EXPECT_EQUAL(c, -100);
+  a=10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=-10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                     EXPECT_EQUAL(c, 0);
+  a=0 ,b=-10, c=100; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                     EXPECT_EQUAL(c, 0);
+  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                   EXPECT_EQUAL(c, 0);
+  a=INT_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                           EXPECT_EQUAL(c, INT_MAX/2*2);
+  a=INT_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s32*s32", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=INT_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s32*s32", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=INT_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s32*s32", b, a));
+                           EXPECT_EQUAL(c, INT_MAX/2*2);
+  a=INT_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s32*s32", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=INT_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s32*s32", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=INT_MIN/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                           EXPECT_EQUAL(c, INT_MIN);
+  a=INT_MIN/2-1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s32*s32", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=INT_MIN/4-1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s32*s32", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=(INT_MIN+4)/4, b=-4, c=0; EXPECT_TRUE(safe_iopf(&c, "s32*s32", a, b));
+                            EXPECT_EQUAL(c, INT_MAX-3);
+  a=INT_MIN/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s32*s32", b, a));
+                           EXPECT_EQUAL(c, INT_MIN);
+  a=INT_MIN/2-1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s32*s32", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=INT_MIN/4-1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s32*s32", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=INT_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s32*s32", b, a));
+                          EXPECT_EQUAL(c, 0);
+  a=INT_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s32*s32", b, a));
+                            EXPECT_EQUAL(c, -(INT_MIN+1));
   return r;
 }
 
@@ -2012,26 +2246,130 @@ int T_iopf_mul_s32s32() {
 int T_iopf_mul_s64s64() {
   int r=1;
   int64_t a, b, c;
-  a=10 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s64+s64", a, b));
-                     EXPECT_TRUE(c == 20);
-  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s64+s64", a, b));
-                   EXPECT_TRUE(c == 0);
-  a=SAFE_INT64_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s64+s64", a, b));
-                           EXPECT_TRUE(c == SAFE_INT64_MAX);
-  a=SAFE_INT64_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s64+s64", a, b));
-                        EXPECT_TRUE(c == 0);
-  a=SAFE_INT64_MAX-1, b=1, c=0; EXPECT_TRUE(safe_iopf(&c, "s64+s64", b, a));
-                          EXPECT_TRUE(c == SAFE_INT64_MAX);
-  a=SAFE_INT64_MAX, b=1, c=0; EXPECT_FALSE(safe_iopf(&c, "s64+s64", b, a));
-                        EXPECT_TRUE(c == 0);
-  a=SAFE_INT64_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s64+s64", a, b));
-                           EXPECT_TRUE(c == SAFE_INT64_MIN);
-  a=SAFE_INT64_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s64+s64", a, b));
-                         EXPECT_TRUE(c == 0);
-  a=SAFE_INT64_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s64+s64", b, a));
-                           EXPECT_TRUE(c == SAFE_INT64_MIN);
-  a=SAFE_INT64_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s64+s64", b, a));
-                         EXPECT_TRUE(c == 0);
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                     EXPECT_EQUAL(c, 100);
+  a=-10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                     EXPECT_EQUAL(c, -100);
+  a=10 ,b=-10, c=10; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                     EXPECT_EQUAL(c, -100);
+  a=10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=0 ,b=10, c=100; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                    EXPECT_EQUAL(c, 0);
+  a=-10 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                     EXPECT_EQUAL(c, 0);
+  a=0 ,b=-10, c=100; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                     EXPECT_EQUAL(c, 0);
+  a=0 ,b=0, c=100; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                   EXPECT_EQUAL(c, 0);
+  a=SAFE_INT64_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                           EXPECT_EQUAL(c, SAFE_INT64_MAX/2*2);
+  a=SAFE_INT64_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s64*s64", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SAFE_INT64_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s64*s64", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SAFE_INT64_MAX/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s64*s64", b, a));
+                           EXPECT_EQUAL(c, SAFE_INT64_MAX/2*2);
+  a=SAFE_INT64_MAX/2+1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s64*s64", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SAFE_INT64_MAX/4+1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s64*s64", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SAFE_INT64_MIN/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                           EXPECT_EQUAL(c, SAFE_INT64_MIN);
+  a=SAFE_INT64_MIN/2-1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s64*s64", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=SAFE_INT64_MIN/4-1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s64*s64", a, b));
+                             EXPECT_EQUAL(c, 0);
+  a=(SAFE_INT64_MIN+4)/4, b=-4, c=0; EXPECT_TRUE(safe_iopf(&c, "s64*s64", a, b));
+                            EXPECT_EQUAL(c, SAFE_INT64_MAX-3);
+  a=SAFE_INT64_MIN/2, b=2, c=0; EXPECT_TRUE(safe_iopf(&c, "s64*s64", b, a));
+                           EXPECT_EQUAL(c, SAFE_INT64_MIN);
+  a=SAFE_INT64_MIN/2-1, b=2, c=0; EXPECT_FALSE(safe_iopf(&c, "s64*s64", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SAFE_INT64_MIN/4-1, b=4, c=0; EXPECT_FALSE(safe_iopf(&c, "s64*s64", b, a));
+                             EXPECT_EQUAL(c, 0);
+  a=SAFE_INT64_MIN, b=-1, c=0; EXPECT_FALSE(safe_iopf(&c, "s64*s64", b, a));
+                          EXPECT_EQUAL(c, 0);
+  a=SAFE_INT64_MIN+1, b=-1, c=0; EXPECT_TRUE(safe_iopf(&c, "s64*s64", b, a));
+                            EXPECT_EQUAL(c, -(SAFE_INT64_MIN+1));
+  return r;
+}
+
+int T_iopf_add_safe_cast_limits() {
+  int r=1;
+  uint8_t a, b, c;
+  int8_t d;
+  a=10 ,b=10, c=100, d = -20; EXPECT_FALSE(safe_iopf(&c, "u8+u8+s8", a, b, d));
+                              EXPECT_EQUAL(c, 100);
+  /* This shows the earlier example where subtraction is perfectly safe but
+   * in order to safely cast in an operator independent way, we have declared
+   * the above unsafe.
+   */
+  a=10 ,b=10, c=100, d = 20; EXPECT_TRUE(safe_iopf(&c, "u8+u8-s8", a, b, d));
+                             EXPECT_EQUAL(c, 0);
+  /* copied from T_iopf_add_s8u8u8 */
+  d=-10 ,b=1, c=SCHAR_MAX+5; EXPECT_FALSE(safe_iopf(&b, "s8+u8+u8", d, b, c));
+                             EXPECT_EQUAL(d, -10);
+  return r;
+}
+
+int T_iopf_add_u8u8s8() {
+  int r=1;
+  uint8_t a, b, c;
+  int8_t d;
+  a=10 ,b=10, c=100, d = -20; EXPECT_FALSE(safe_iopf(&c, "u8+u8+s8", a, b, d));
+                              EXPECT_EQUAL(c, 100);
+  a=10 ,b=0, c=100, d = -20; EXPECT_FALSE(safe_iopf(&c, "u8+u8+s8", a, b, d));
+                             EXPECT_EQUAL(c, 100);
+  a=10, b=UCHAR_MAX, c=1, d = 10; EXPECT_FALSE(safe_iopf(&c, "u8+u8+s8", a, b, d));
+                                  EXPECT_EQUAL(c, 1);
+  a=1, b=UCHAR_MAX-2, c=1, d = 1; EXPECT_TRUE(safe_iopf(&c, "u8+u8+s8", a, b, d));
+                                  EXPECT_EQUAL(c, UCHAR_MAX);
+  return r;
+}
+
+int T_iopf_add_s8u8u8() {
+  int r=1;
+  int8_t a;
+  uint8_t b, c;
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&a, "s8+u8+u8", a, b, c));
+                    EXPECT_EQUAL(a, 30);
+  a=SCHAR_MIN ,b=1, c=SCHAR_MAX; EXPECT_TRUE(safe_iopf(&a, "s8+u8+u8", a, b, c));
+                                 EXPECT_EQUAL(a, 0);
+  /* Here's another operation that would succeed if casting up to the next
+   * sized type was performed but is rejected by safe_iop */
+  a=-10 ,b=1, c=SCHAR_MAX+5; EXPECT_FALSE(safe_iopf(&a, "s8+u8+u8", a, b, c));
+                             EXPECT_EQUAL(a, -10);
+  return r;
+}
+
+int T_iopf_mixed_s16u8u64() {
+  int r=1;
+  int16_t a = 0;
+  uint8_t b = 0;
+  uint64_t c = 0;
+  a=10 ,b=10, c=10; EXPECT_TRUE(safe_iopf(&a, "s16+u8+u64", a, b, c));
+                    EXPECT_EQUAL(a, 30);
+  a=SHRT_MIN, b=UCHAR_MAX, c=SHRT_MAX-UCHAR_MAX;
+    EXPECT_TRUE(safe_iopf(&a, "s16+u8+u64", a, b, c));
+    EXPECT_EQUAL(a, -1);
+  a=100, b=100, c=3; EXPECT_TRUE(safe_iopf(&a, "s16*u8*u64", a, b, c));
+                     EXPECT_EQUAL(a, 30000);
+  a=132, b=4, c=8; EXPECT_TRUE(safe_iopf(&a, "s16-u8/u64", a, b, c));
+                     EXPECT_EQUAL(a, 16);
+  a=132, b=4, c=0; EXPECT_FALSE(safe_iopf(&a, "s16-u8/u64", a, b, c));
+                   EXPECT_EQUAL(a, 132);
+  a=1, b=4,c=2; EXPECT_TRUE(safe_iopf(&a, "s16<<u8+u64", a, b, c));
+                EXPECT_EQUAL(a, 18);
+  /* TODO: check this out... 
+  a=5, b=1, c=1; EXPECT_TRUE(safe_iopf(&a, "s16>>u8-u64", a, b, c));
+                 EXPECT_EQUAL(a, 1);
+  */
+  a=16, b=1, c=2; EXPECT_TRUE(safe_iopf(&a, "s16>>u8<<u64", a, b, c));
+                 EXPECT_EQUAL(a, 32);
+  a=16, b=1,c=100; EXPECT_FALSE(safe_iopf(&a, "s16>>u8<<u64", a, b, c));
+                   EXPECT_EQUAL(a, 16);
+
   return r;
 }
 
@@ -2042,33 +2380,33 @@ int T_iopf_mul_s64s64() {
 
 int T_magic_constants() {
   int r=1;
-  EXPECT_TRUE(__sio(m)(smin)(((int8_t)0)) == SCHAR_MIN);
-  EXPECT_TRUE(__sio(m)(smax)(((int8_t)0)) == SCHAR_MAX);
-  EXPECT_TRUE(__sio(m)(umax)(((uint8_t)0)) == UCHAR_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(((int8_t)0)), SCHAR_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(((int8_t)0)), SCHAR_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(((uint8_t)0)), UCHAR_MAX);
 
-  EXPECT_TRUE(__sio(m)(smin)(((int16_t)0)) == SHRT_MIN);
-  EXPECT_TRUE(__sio(m)(smax)(((int16_t)0)) == SHRT_MAX);
-  EXPECT_TRUE(__sio(m)(umax)(((uint16_t)0)) == USHRT_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(((int16_t)0)), SHRT_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(((int16_t)0)), SHRT_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(((uint16_t)0)), USHRT_MAX);
 
-  EXPECT_TRUE(__sio(m)(smin)(((int32_t)0)) == INT_MIN);
-  EXPECT_TRUE(__sio(m)(smax)(((int32_t)0)) == INT_MAX);
-  EXPECT_TRUE(__sio(m)(umax)(((uint32_t)0)) == UINT_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(((int32_t)0)), INT_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(((int32_t)0)), INT_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(((uint32_t)0)), UINT_MAX);
 
-  EXPECT_TRUE(__sio(m)(smin)(((int64_t)0)) == SAFE_INT64_MIN);
-  EXPECT_TRUE(__sio(m)(smax)(((int64_t)0)) == SAFE_INT64_MAX);
-  EXPECT_TRUE(__sio(m)(umax)(((uint64_t)0)) == SAFE_UINT64_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(((int64_t)0)), SAFE_INT64_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(((int64_t)0)), SAFE_INT64_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(((uint64_t)0)), SAFE_UINT64_MAX);
 
-  EXPECT_TRUE(__sio(m)(smin)(((ssize_t)0)) == SSIZE_MIN);
-  EXPECT_TRUE(__sio(m)(smax)(((ssize_t)0)) == SSIZE_MAX);
-  EXPECT_TRUE(__sio(m)(umax)(((size_t)0)) == SIZE_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(((ssize_t)0)), SSIZE_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(((ssize_t)0)), SSIZE_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(((size_t)0)), SIZE_MAX);
 
-  EXPECT_TRUE(__sio(m)(smin)(((long)0)) == LONG_MIN);
-  EXPECT_TRUE(__sio(m)(smax)(((long)0)) == LONG_MAX);
-  EXPECT_TRUE(__sio(m)(umax)(((unsigned long)0)) == ULONG_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(((long)0)), LONG_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(((long)0)), LONG_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(((unsigned long)0)), ULONG_MAX);
 
-  EXPECT_TRUE(__sio(m)(smin)(((long long)0)) == LLONG_MIN);
-  EXPECT_TRUE(__sio(m)(smax)(((long long)0)) == LLONG_MAX);
-  EXPECT_TRUE(__sio(m)(umax)(((unsigned long long)0)) == ULLONG_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(((long long)0)), LLONG_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(((long long)0)), LLONG_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(((unsigned long long)0)), ULLONG_MAX);
 
   return r;
 }
@@ -2306,7 +2644,8 @@ int main(int argc, char **argv) {
   tests++; if (T_add_increment()) succ++; else fail++;
 
   tests++; if (T_iopf_null()) succ++; else fail++;
-  /* tests++; if (T_iopf_self()) succ++; else fail++; */
+  tests++; if (T_iopf_self()) succ++; else fail++;
+
   tests++; if (T_iopf_add_u8u8()) succ++; else fail++;
   tests++; if (T_iopf_add_u16u16()) succ++; else fail++;
   tests++; if (T_iopf_add_u32u32()) succ++; else fail++;
@@ -2319,18 +2658,31 @@ int main(int argc, char **argv) {
   tests++; if (T_iopf_mul_u8u8()) succ++; else fail++;
   tests++; if (T_iopf_mul_u16u16()) succ++; else fail++;
   tests++; if (T_iopf_mul_u32u32()) succ++; else fail++;
+  tests++; if (T_iopf_mul_u32u32u32()) succ++; else fail++;
   tests++; if (T_iopf_mul_u64u64()) succ++; else fail++;
+
   tests++; if (T_iopf_mul_s8s8()) succ++; else fail++;
   tests++; if (T_iopf_mul_s16s16()) succ++; else fail++;
   tests++; if (T_iopf_mul_s32s32()) succ++; else fail++;
   tests++; if (T_iopf_mul_s64s64()) succ++; else fail++;
 
 
+  tests++; if (T_iopf_add_safe_cast_limits()) succ++; else fail++;
 
+  tests++; if (T_iopf_add_u8u8s8()) succ++; else fail++;
+  tests++; if (T_iopf_add_s8u8u8()) succ++; else fail++;
+  tests++; if (T_iopf_mixed_s16u8u64()) succ++; else fail++;
+  /*
+  tests++; if (T_iopf_add_u8u8s16()) succ++; else fail++;
+  tests++; if (T_iopf_add_s16u8u8()) succ++; else fail++;
+  tests++; if (T_iopf_add_u8u16s32()) succ++; else fail++;
+  tests++; if (T_iopf_add_s16u32u8()) succ++; else fail++;
+  tests++; if (T_iopf_add_s32u16u8()) succ++; else fail++;
+  tests++; if (T_iopf_add_s64u32u8()) succ++; else fail++;
+  */
 
 
   tests++; if (T_magic_constants()) succ++; else fail++;
-
 
   printf("%d/%d expects succeeded (%d failures)\n",
          expect_succ, expect, expect_fail);

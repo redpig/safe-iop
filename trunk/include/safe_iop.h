@@ -5,19 +5,26 @@
  * To Do:
  * - Optimize safe type casting to perform minimal operations
  * - Add varargs style interface for safe_<op>()
- * - Add more test cases for interfaces (op_mixed)
- * - Add more tests for edge cases I've missed? and for thoroughness
+ * - Review existing tests for neglected cases
+ * - Add testing for safe_iopf: div, mod, shl, shr, sub
+ * - Consider ways to do safe casting with operator awareness to
+ *   allow cases where an addition of a negative signed value may be safe
+ *   as a subtraction, for example. (Perhaps using checked type promotion
+ *   similarly to compilers)
  *
  * History:
  * = 0.4
+ * - Add support for differently typed/signed operands in safe_iopf format
+ * - Added negative tests to add T_<op>_*()s
  * - [BUG] Fixed signed addition. Two negatives were failing!
- * - Added two negative tests to add T_add_*()s
  * - Extended safe_iopf to support more types. Still needs more testing.
  * - Added more mixed interface tests
  * - Added safe type casting (automagically)
  * - Added basic speed tests (not accurate at all yet)
  * - Added safe_inc/safe_dec
  * - Licensed all subsequent work BSD for clarity of code ownership
+ * = 0.3.1
+ * - fixed typo/bug in safe_sadd (backported from 0.4.0/trunk above)
  * = 0.3
  * - solidified code into a smaller number of macros and functions
  * - added typeless functions using gcc magic (typeof)
@@ -85,6 +92,8 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
                SAFE_IOP_TYPE_DEFAULT = SAFE_IOP_TYPE_S32,
                } safe_type_t;
 
+/* Largest data width supported by safe_iopf */
+#define SAFE_IOPF_MAX_WIDTH sizeof(long long)
 #define SAFE_IOP_TYPE_PREFIXES "us"
 
 /* use a nice prefix :) */
@@ -882,11 +891,15 @@ MAKE_SMOD(s, 8, int8_t,  SCHAR_MIN)
  * Currently accepted format syntax is:
  *   [type_marker]operation...
  * The type marker may be any of the following:
- * - s32 for signed int32
- * - u32 for unsigned int32
+ * - s[8,16,32,64] for signed of size 8-bit, etc
+ * - u[8,16,32,64] for unsigned of size 8-bit, etc
  * If no type_marker is specified, it is assumed to be s32.
- *
- * Currently, this only performs correctly with 32-bit integers.
+ * If a left-hand side type-marker is given, then that will
+ * become the default for all remaining operands.
+ * E.g.,
+ *   safe_iopf(&dst, "u16**+", a, b, c. d);
+ * is equivalent to ((a*b)*c)+d all of type u16.
+ * This function uses FIFO and not any other order of operations/precedence.
  *
  * The operation must be one of the following:
  * - * -- multiplication
@@ -898,7 +911,7 @@ MAKE_SMOD(s, 8, int8_t,  SCHAR_MIN)
  * Whitespace will be ignored.
  *
  * Args:
- * - pointer to the final result  (this must be at least the size of int32)
+ * - pointer to the final result
  * - array of format characters
  * - all remaining arguments are derived from the format
  * Output:

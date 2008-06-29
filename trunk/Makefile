@@ -14,7 +14,9 @@ CC = gcc
 VERSION = 0.3
 TESTNAME = safe_iop_test
 # For sparc64, _only_ use -O1 or -O0
-CFLAGS   = -Wall -O2 -Iinclude
+# -fno-strict-aliasing is needed for more recent GCCs when compiling the
+# tests or the library.  It is _NOT_ needed forusing the header only.
+CFLAGS   = -Wall -O2 -Iinclude -fno-strict-aliasing
 SOURCES = src/safe_iop.c
 
 all: $(TESTNAME) $(TESTNAME)_speed
