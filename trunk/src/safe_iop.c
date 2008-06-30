@@ -93,17 +93,17 @@ static int _safe_op_read_type(safe_type_t *type, const char **c) {
  *      ADD TESTS!
  */
 #define _SAFE_IOP_TYPE_CASE(_lhs, _va_lhs, _rhs, _va_rhs, _func) { \
-  _lhs value; \
   _rhs a; \
+  _lhs value, *_h = (_lhs *) holder; \
   if (!baseline) { \
     value = (_lhs) va_arg(ap, _va_lhs); \
     a = (_rhs) va_arg(ap, _va_rhs); \
     baseline = 1; \
   } else { \
-    value = *((_lhs *) holder);\
+    value = *_h; \
     a = (_rhs) va_arg(ap, _va_rhs); \
   } \
-  if (! _func( ((_lhs *) holder), value, a)) \
+  if (! _func( _h, value, a)) \
     return 0; \
 }
 
@@ -254,30 +254,38 @@ int safe_iopf(void *result, const char *const fmt, ...) {
   /* Success! Assign the holder value back to result using the stored lhs */
   if (result) {
     switch (lhs) {
-      case SAFE_IOP_TYPE_U8:
-        *((uint8_t *)result) = *((uint8_t *)holder);
-        break;
-      case SAFE_IOP_TYPE_S8:
-        *((int8_t *)result) = *((int8_t *)holder);
-        break;
-      case SAFE_IOP_TYPE_U16:
-        *((uint16_t *)result) = *((uint16_t *)holder);
-        break;
-      case SAFE_IOP_TYPE_S16:
-        *((int16_t *)result) = *((int16_t *)holder);
-        break;
-      case SAFE_IOP_TYPE_U32:
-        *((uint32_t *)result) = *((uint32_t *)holder);
-        break;
-      case SAFE_IOP_TYPE_S32:
-        *((int32_t *)result) = *((int32_t *)holder);
-        break;
-      case SAFE_IOP_TYPE_U64:
-        *((uint64_t *)result) = *((uint64_t *)holder);
-        break;
-      case SAFE_IOP_TYPE_S64:
-        *((int64_t *)result) = *((int64_t *)holder);
-        break;
+      case SAFE_IOP_TYPE_U8: {
+        uint8_t *r = result, *h = (uint8_t *) holder;
+        *r = *h;
+        } break;
+      case SAFE_IOP_TYPE_S8: {
+        int8_t *r = result, *h = (int8_t *)holder;
+        *r = *h;
+        } break;
+      case SAFE_IOP_TYPE_U16: {
+        uint16_t *r = result, *h = (uint16_t *) holder;
+        *r = *h;
+        } break;
+      case SAFE_IOP_TYPE_S16: {
+        int16_t *r = result, *h = (int16_t *) holder;
+        *r = *h;
+        } break;
+      case SAFE_IOP_TYPE_U32: {
+        uint32_t *r = result, *h = (uint32_t *) holder;
+        *r = *h;
+        } break;
+      case SAFE_IOP_TYPE_S32: {
+        int32_t *r = result, *h = (int32_t *) holder;
+        *r = *h;
+        } break;
+      case SAFE_IOP_TYPE_U64: {
+        uint64_t *r = result, *h = (uint64_t *) holder;
+        *r = *h;
+        } break;
+      case SAFE_IOP_TYPE_S64: {
+        int64_t *r = result, *h = (int64_t *) holder;
+        *r = *h;
+        } break;
       default:
         /* bad sign. maybe this should abort. */
         return 0;
