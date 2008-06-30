@@ -81,6 +81,8 @@
 #include <limits.h>  /* for CHAR_BIT */
 #include <assert.h>  /* for type enforcement */
 
+#define SAFE_IOP_VERSION "0.4.0"
+
 typedef enum { SAFE_IOP_TYPE_U8 = 1,
                SAFE_IOP_TYPE_S8,
                SAFE_IOP_TYPE_U16,
