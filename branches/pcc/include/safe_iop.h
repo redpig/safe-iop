@@ -81,7 +81,54 @@
 #include <limits.h>  /* for CHAR_BIT */
 #include <assert.h>  /* for type enforcement */
 
-#define SAFE_IOP_VERSION "0.4.0"
+#define SAFE_IOP_VERSION "0.4.0-pcc"
+
+struct sio_arg_t {
+  uint8_t bits;
+  _Bool   sign;
+  union {
+    uint8_t   u8;
+     int8_t   s8;
+    uint16_t u16;
+     int16_t s16;
+    uint32_t u32;
+     int32_t s32;
+    uint64_t u64;
+     int64_t s64;
+  } v;
+};
+
+#define sio_s8(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 1, .v.s8 = _a })
+#define sio_u8(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 0, .v.u8 = _a })
+#define sio_s16(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 1, .v.s16 = _a })
+#define sio_s16(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 0, .v.u16 = _a })
+#define sio_s32(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 1, .v.s32 = _a })
+#define sio_u32(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 0, .v.u32 = _a })
+#define sio_s64(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 1, .v.s64 = _a })
+#define sio_u64(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 0, .v.u64 = _a })
+
+/* For gcc */
+#define safe_add(_dst, _a, _b) ({  \
+  /* Detect sign and width of typeof(_a) and typeof(_b) then */ \
+  /* Assign the sio_s32(_a) or whatever */ \
+})
+
+static inline _Bool safe_addx(void *dst,
+                              struct sio_arg_t *a,
+                              struct sio_arg_t *b) {
+  _Bool ok = 0;
+  /* Do sign and width checks */
+  /* ... */
+  if (a.sign) {
+   /* safe_sadd... */
+  } else {
+   /* safe_uadd... */
+  }
+  return ok;
+}
+
+/** Original stuff here **/
+
 
 typedef enum { SAFE_IOP_TYPE_U8 = 1,
                SAFE_IOP_TYPE_S8,
