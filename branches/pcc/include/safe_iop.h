@@ -80,54 +80,9 @@
 #define _SAFE_IOP_H
 #include <limits.h>  /* for CHAR_BIT */
 #include <assert.h>  /* for type enforcement */
+#include <stdarg.h> /* for variadic inlines */
 
 #define SAFE_IOP_VERSION "0.4.0-pcc"
-
-struct sio_arg_t {
-  uint8_t bits;
-  _Bool   sign;
-  union {
-    uint8_t   u8;
-     int8_t   s8;
-    uint16_t u16;
-     int16_t s16;
-    uint32_t u32;
-     int32_t s32;
-    uint64_t u64;
-     int64_t s64;
-  } v;
-};
-
-#define sio_s8(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 1, .v.s8 = _a })
-#define sio_u8(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 0, .v.u8 = _a })
-#define sio_s16(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 1, .v.s16 = _a })
-#define sio_s16(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 0, .v.u16 = _a })
-#define sio_s32(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 1, .v.s32 = _a })
-#define sio_u32(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 0, .v.u32 = _a })
-#define sio_s64(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 1, .v.s64 = _a })
-#define sio_u64(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 0, .v.u64 = _a })
-
-/* For gcc */
-#define safe_add(_dst, _a, _b) ({  \
-  /* Detect sign and width of typeof(_a) and typeof(_b) then */ \
-  /* Assign the sio_s32(_a) or whatever */ \
-})
-
-static inline _Bool safe_addx(void *dst,
-                              struct sio_arg_t *a,
-                              struct sio_arg_t *b) {
-  _Bool ok = 0;
-  /* Do sign and width checks */
-  /* ... */
-  if (a.sign) {
-   /* safe_sadd... */
-  } else {
-   /* safe_uadd... */
-  }
-  return ok;
-}
-
-/** Original stuff here **/
 
 
 typedef enum { SAFE_IOP_TYPE_U8 = 1,
@@ -147,8 +102,10 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
 
 /* use a nice prefix :) */
 #define __sio(x) OPAQUE_SAFE_IOP_PREFIX_ ## x
+#define OPAQUE_SAFE_IOP_PREFIX_val(_V,_T)  _V->v._T
 #define OPAQUE_SAFE_IOP_PREFIX_var(x) __sio(VARIABLE_ ## x)
 #define OPAQUE_SAFE_IOP_PREFIX_m(x) __sio(MACRO_ ## x)
+#define OPAQUE_SAFE_IOP_PREFIX_f(x) __sio(FN_ ## x)
 
 
 /* A recursive macro which safely multiplies the given type together.
@@ -168,6 +125,122 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
 #define OPAQUE_SAFE_IOP_PREFIX_MACRO_type_enforce(__A, __B) \
   ((__sio(m)(is_signed)(__A) == __sio(m)(is_signed)(__B)) && \
    (sizeof(typeof(__A)) == sizeof(typeof(__B))))
+
+
+struct sio_arg_t {
+  uint8_t bits;
+  _Bool   sign;
+  union {
+    uint8_t   u8;
+     int8_t   s8;
+    uint16_t u16;
+     int16_t s16;
+    uint32_t u32;
+     int32_t s32;
+    uint64_t u64;
+     int64_t s64;
+  } v;
+};
+
+#define sio_s8(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 1, .v.s8 = _a })
+#define sio_u8(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 0, .v.u8 = _a })
+#define sio_s16(_a) (&(struct sio_arg_t){ .bits = 16, .sign = 1, .v.s16 = _a })
+#define sio_u16(_a) (&(struct sio_arg_t){ .bits = 16, .sign = 0, .v.u16 = _a })
+#define sio_s32(_a) (&(struct sio_arg_t){ .bits = 32, .sign = 1, .v.s32 = _a })
+#define sio_u32(_a) (&(struct sio_arg_t){ .bits = 32, .sign = 0, .v.u32 = _a })
+#define sio_s64(_a) (&(struct sio_arg_t){ .bits = 64, .sign = 1, .v.s64 = _a })
+#define sio_u64(_a) (&(struct sio_arg_t){ .bits = 64, .sign = 0, .v.u64 = _a })
+
+/* XXX: kludge for now.  Just casting up/over to uint64_t. Later replace with
+ *     a switch on .bits and an if on sign.
+ */
+/* For gcc */
+#define safe_add(_dst, _a, _b) ({ \
+  typeof(_a) __sio(var)(add_a) = (_a); \
+  typeof(_b) __sio(var)(add_b) = (_b); \
+  struct sio_arg_t __sio(var)(a) = {0}, __sio(var)(b) = {0}; \
+  __sio(var)(a).bits = sizeof(typeof(_a))*CHAR_BIT; \
+  __sio(var)(b).bits = sizeof(typeof(_b))*CHAR_BIT; \
+  __sio(var)(a).sign = __sio(m)(is_signed)(__sio(var)(add_a)); \
+  __sio(var)(b).sign = __sio(m)(is_signed)(__sio(var)(add_b)); \
+  switch (__sio(var)(a).bits) { \
+    case 8: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s8 = __sio(var)(add_a); \
+      else                    __sio(var)(a).v.u8 = __sio(var)(add_a); \
+      break; \
+    case 16: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s16 = __sio(var)(add_a); \
+      else                    __sio(var)(a).v.u16 = __sio(var)(add_a); \
+      break; \
+    case 32: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s32 = __sio(var)(add_a); \
+      else                    __sio(var)(a).v.u32 = __sio(var)(add_a); \
+      break; \
+    case 64: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s64 = __sio(var)(add_a); \
+      else                    __sio(var)(a).v.u64 = __sio(var)(add_a); \
+      break; \
+  } \
+  switch (__sio(var)(b).bits) { \
+    case 8: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s8 = __sio(var)(add_b); \
+      else                    __sio(var)(b).v.u8 = __sio(var)(add_b); \
+      break; \
+    case 16: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s16 = __sio(var)(add_b); \
+      else                    __sio(var)(b).v.u16 = __sio(var)(add_b); \
+      break; \
+    case 32: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s32 = __sio(var)(add_b); \
+      else                    __sio(var)(b).v.u32 = __sio(var)(add_b); \
+      break; \
+    case 64: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s64 = __sio(var)(add_b); \
+      else                    __sio(var)(b).v.u64 = __sio(var)(add_b); \
+      break; \
+  } \
+  safe_addx(_dst,  &__sio(var)(a), &__sio(var)(b)); \
+})
+
+/* TODO: convert for for loop on varargs */
+static inline _Bool safe_addx(void *dst,
+                              struct sio_arg_t *a,
+                              struct sio_arg_t *b) {
+  _Bool ok = 1;
+  struct sio_arg_t rhs = *b;
+  /* Ensure cast down for b works or fail here */
+
+  /* ... */
+  if (a->sign) {
+    switch (a->bits) {
+      case 8: {
+        /* TODO: write safe_cast inline */
+        /* XXX: assume same size currently */
+        if ((rhs.v.s8 > 0) && (a->v.s8 > 0)) { /* positive */
+          /* XXX: convert to __sio(m)(smax) or make __sio(SCHAR_MAX) */
+          if (a->v.s8 > SCHAR_MAX - rhs.v.s8) ok = 0;
+        } else if (a->v.s8 < 0 && rhs.v.s8 < 0) {
+          if (a->v.s8 < SCHAR_MIN - rhs.v.s8) ok = 0;
+        }
+        if (ok && dst) {
+          int8_t *ptr = dst;
+          *ptr = a->v.s8 + rhs.v.s8;
+        }
+      } break;
+      case 16: {
+      } break;
+      case 32: {
+      } break;
+      case 64: {
+      } break;
+    }
+  } else {
+   /* safe_uadd... */
+  }
+  return ok;
+}
+
+
 
 /* Casts B to A if possible. Only call if type_enforce fails. */
 /* XXX: Optimize scOk assignment to minimize use */
@@ -249,7 +322,7 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
 
 /* Primary interface macros */
 /* type checking is compiled out if NDEBUG supplied. */
-#define safe_add(_ptr, __a, __b) \
+#define safe_add_macro_only(_ptr, __a, __b) \
  ({ int __sio(var)(ok) = 0; \
     typeof(__a) __sio(var)(_a) = (__a), __sio(var)(_b); \
     typeof(_ptr) __sio(var)(p) = (_ptr); \
