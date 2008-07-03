@@ -2388,33 +2388,33 @@ int T_iopf_mixed_s16u8u64() {
 
 int T_magic_constants() {
   int r=1;
-  EXPECT_EQUAL(__sio(m)(smin)(((int8_t)0)), SCHAR_MIN);
-  EXPECT_EQUAL(__sio(m)(smax)(((int8_t)0)), SCHAR_MAX);
-  EXPECT_EQUAL(__sio(m)(umax)(((uint8_t)0)), UCHAR_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(int8_t), SCHAR_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(int8_t), SCHAR_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(uint8_t), UCHAR_MAX);
 
-  EXPECT_EQUAL(__sio(m)(smin)(((int16_t)0)), SHRT_MIN);
-  EXPECT_EQUAL(__sio(m)(smax)(((int16_t)0)), SHRT_MAX);
-  EXPECT_EQUAL(__sio(m)(umax)(((uint16_t)0)), USHRT_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(int16_t), SHRT_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(int16_t), SHRT_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(uint16_t), USHRT_MAX);
 
-  EXPECT_EQUAL(__sio(m)(smin)(((int32_t)0)), INT_MIN);
-  EXPECT_EQUAL(__sio(m)(smax)(((int32_t)0)), INT_MAX);
-  EXPECT_EQUAL(__sio(m)(umax)(((uint32_t)0)), UINT_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(int32_t), INT_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(int32_t), INT_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(uint32_t), UINT_MAX);
 
-  EXPECT_EQUAL(__sio(m)(smin)(((int64_t)0)), SAFE_INT64_MIN);
-  EXPECT_EQUAL(__sio(m)(smax)(((int64_t)0)), SAFE_INT64_MAX);
-  EXPECT_EQUAL(__sio(m)(umax)(((uint64_t)0)), SAFE_UINT64_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(int64_t), SAFE_INT64_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(int64_t), SAFE_INT64_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(uint64_t), SAFE_UINT64_MAX);
 
-  EXPECT_EQUAL(__sio(m)(smin)(((ssize_t)0)), SSIZE_MIN);
-  EXPECT_EQUAL(__sio(m)(smax)(((ssize_t)0)), SSIZE_MAX);
-  EXPECT_EQUAL(__sio(m)(umax)(((size_t)0)), SIZE_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(ssize_t), SSIZE_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(ssize_t), SSIZE_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(size_t), SIZE_MAX);
 
-  EXPECT_EQUAL(__sio(m)(smin)(((long)0)), LONG_MIN);
-  EXPECT_EQUAL(__sio(m)(smax)(((long)0)), LONG_MAX);
-  EXPECT_EQUAL(__sio(m)(umax)(((unsigned long)0)), ULONG_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(long), LONG_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(long), LONG_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(unsigned long), ULONG_MAX);
 
-  EXPECT_EQUAL(__sio(m)(smin)(((long long)0)), LLONG_MIN);
-  EXPECT_EQUAL(__sio(m)(smax)(((long long)0)), LLONG_MAX);
-  EXPECT_EQUAL(__sio(m)(umax)(((unsigned long long)0)), ULLONG_MAX);
+  EXPECT_EQUAL(__sio(m)(smin)(long long), LLONG_MIN);
+  EXPECT_EQUAL(__sio(m)(smax)(long long), LLONG_MAX);
+  EXPECT_EQUAL(__sio(m)(umax)(unsigned long long), ULLONG_MAX);
 
   return r;
 }
