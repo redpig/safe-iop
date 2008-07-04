@@ -682,6 +682,7 @@ static inline _Bool safe_addx(void *dst,
 
 /* Casts B to A if possible. Only call if type_enforce fails. */
 /* XXX: Optimize scOk assignment to minimize use */
+#if defined(__GNUC__)
 #define OPAQUE_SAFE_IOP_PREFIX_MACRO_safe_cast(__DST, __A, __B)  ({ \
   int __sio(var)(__scOk) = 0; \
   if (sizeof(typeof(__A)) == sizeof(typeof(__B))) { \
@@ -746,15 +747,19 @@ static inline _Bool safe_addx(void *dst,
   } \
   __sio(var)(__scOk); \
 })
+#endif
 
 /* We use a non-void wrapper for assert(). This allows us to factor it away on
  * -DNDEBUG but still have conditionals test the result (and optionally return
  *  false).
  */
+/* C99 doesn't seem to allow ({ }) */
+#if defined(__GNUC__)
 #if defined(NDEBUG)
 #  define OPAQUE_SAFE_IOP_PREFIX_MACRO_assert(x) (x)
 #else
 #  define OPAQUE_SAFE_IOP_PREFIX_MACRO_assert(x) ({ assert(x); 1; })
+#endif
 #endif
 
 
@@ -762,6 +767,7 @@ static inline _Bool safe_addx(void *dst,
 
 /* Primary interface macros */
 /* type checking is compiled out if NDEBUG supplied. */
+#if defined(__GNUC__)
 #define safe_add_macro_only(_ptr, __a, __b) \
  ({ int __sio(var)(ok) = 0; \
     typeof(__a) __sio(var)(_a) = (__a), __sio(var)(_b); \
@@ -788,12 +794,6 @@ static inline _Bool safe_addx(void *dst,
   safe_add(__sio(var)(pA), *(__sio(var)(pA)), \
            ((typeof(*(__sio(var)(pA))))1)); \
 })
-
-#if 0
-#define safe_inc(_A) ({ \
-  safe_add(&__sio(var)(pA), __sio(var)(pA), 1); \
-})
-#endif
 
 #define safe_add3(_ptr, _A, _B, _C) \
 ({ typeof(_A) __sio(var)(a) = (_A); \
@@ -1239,6 +1239,7 @@ static inline _Bool safe_addx(void *dst,
     __sio(var)(ok); })
 
 
+#endif
 /* safe_iopf
  *
  * Takes in a character array which specifies the operations
