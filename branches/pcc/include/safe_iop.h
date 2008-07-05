@@ -3,10 +3,13 @@
  * Author:: Will Drewry <redpig@dataspill.org>
  * 
  * To Do:
+ * - Clean up TODOs
+ * - Clean out legacy code and fix up style (line len, etc)
+ * - Get compiling under PCC
+ * - Add tests for typeof() specific notes
  * - Optimize safe type casting to perform minimal operations
- * - Add varargs style interface for safe_<op>()
  * - Review existing tests for neglected cases
- * - Add testing for safe_iopf: div, mod, shl, shr, sub
+ * - Consider adding support for disabling safe_cast as it is expensive.
  * - Consider ways to do safe casting with operator awareness to
  *   allow cases where an addition of a negative signed value may be safe
  *   as a subtraction, for example. (Perhaps using checked type promotion
@@ -14,6 +17,9 @@
  *
  * History:
  * = 0.4
+ * - Rewrote to support passing consts and compilers without typeof()
+ * -- added safe_<op>x  -- primary interface
+ * -- added safe_<op>v  -- varargs interface
  * - Add support for differently typed/signed operands in safe_iopf format
  * - Added negative tests to add T_<op>_*()s
  * - [BUG] Fixed signed addition. Two negatives were failing!
@@ -46,6 +52,7 @@
  *
  * Contributors & thanks:
  * - peter@valchev.net for his review, comments, and enthusiasm
+ * - Diego 'Flameeyes' Petteno for his analysis, use, and bug reporting
  * - thanks to Google for contributing some time
  *
  * Copyright (c) 2007,2008 Will Drewry <redpig@dataspill.org>
@@ -153,9 +160,17 @@ struct sio_arg_t {
      int32_t s32;
     uint64_t u64;
      int64_t s64;
+     /* holders only -- these will be accessed via the above holders if possible */
+     signed long    l;
+     unsigned long ul;
+     signed long long    ll;
+     unsigned long long ull;
+     size_t szt;
+     ssize_t sszt;
+     signed int    i;
+     unsigned int ui;
   } v;
 };
-
 #define sio_s8(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 1, .v.s8 = _a })
 #define sio_u8(_a) (&(struct sio_arg_t){ .bits = 8, .sign = 0, .v.u8 = _a })
 #define sio_s16(_a) (&(struct sio_arg_t){ .bits = 16, .sign = 1, .v.s16 = _a })
@@ -164,6 +179,16 @@ struct sio_arg_t {
 #define sio_u32(_a) (&(struct sio_arg_t){ .bits = 32, .sign = 0, .v.u32 = _a })
 #define sio_s64(_a) (&(struct sio_arg_t){ .bits = 64, .sign = 1, .v.s64 = _a })
 #define sio_u64(_a) (&(struct sio_arg_t){ .bits = 64, .sign = 0, .v.u64 = _a })
+
+/* Types with varying sizes which should be access by <s|u><bits> */
+#define sio_l(_a) (&(struct sio_arg_t){ .bits = sizeof(signed long)*CHAR_BIT, .sign = 1, .v.l = _a })
+#define sio_ul(_a) (&(struct sio_arg_t){ .bits = sizeof(unsigned long)*CHAR_BIT, .sign = 0, .v.ul = _a })
+#define sio_ll(_a) (&(struct sio_arg_t){ .bits = sizeof(signed long long)*CHAR_BIT, .sign = 1, .v.ll = _a })
+#define sio_ull(_a) (&(struct sio_arg_t){ .bits = sizeof(unsigned long long)*CHAR_BIT, .sign = 0, .v.ull = _a })
+#define sio_szt(_a) (&(struct sio_arg_t){ .bits = sizeof(size_t)*CHAR_BIT, .sign = 0, .v.szt = _a })
+#define sio_sszt(_a) (&(struct sio_arg_t){ .bits = sizeof(ssize_t)*CHAR_BIT, .sign = 1, .v.sszt = _a })
+#define sio_i(_a) (&(struct sio_arg_t){ .bits = sizeof(int)*CHAR_BIT, .sign = 1, .v.i = _a })
+#define sio_ui(_a) (&(struct sio_arg_t){ .bits = sizeof(unsigned int)*CHAR_BIT, .sign = 0, .v.ui = _a })
 
 #ifdef __GNUC__
  /* Slowly guard all GCC specific functionality with __GNUC__ tests
@@ -222,6 +247,332 @@ struct sio_arg_t {
     __sio(var)(ok) = safe_addx(_dst,  &__sio(var)(a), &__sio(var)(b)); \
   __sio(var)(ok); \
 })
+
+#define safe_sub(_dst, _a, _b) ({ \
+  typeof(_a) __sio(var)(sub_a) = (_a); \
+  typeof(_b) __sio(var)(sub_b) = (_b); \
+  _Bool __sio(var)(ok) = 1; \
+  struct sio_arg_t __sio(var)(a) = {0}, __sio(var)(b) = {0}; \
+  __sio(var)(a).bits = sizeof(typeof(__sio(var)(sub_a)))*CHAR_BIT; \
+  __sio(var)(b).bits = sizeof(typeof(__sio(var)(sub_b)))*CHAR_BIT; \
+  __sio(var)(a).sign = __sio(m)(is_signed)(__sio(var)(sub_a)); \
+  __sio(var)(b).sign = __sio(m)(is_signed)(__sio(var)(sub_b)); \
+  switch (__sio(var)(a).bits) { \
+    case 8: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s8 = __sio(var)(sub_a); \
+      else                    __sio(var)(a).v.u8 = __sio(var)(sub_a); \
+      break; \
+    case 16: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s16 = __sio(var)(sub_a); \
+      else                    __sio(var)(a).v.u16 = __sio(var)(sub_a); \
+      break; \
+    case 32: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s32 = __sio(var)(sub_a); \
+      else                    __sio(var)(a).v.u32 = __sio(var)(sub_a); \
+      break; \
+    case 64: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s64 = __sio(var)(sub_a); \
+      else                    __sio(var)(a).v.u64 = __sio(var)(sub_a); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  switch (__sio(var)(b).bits) { \
+    case 8: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s8 = __sio(var)(sub_b); \
+      else                    __sio(var)(b).v.u8 = __sio(var)(sub_b); \
+      break; \
+    case 16: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s16 = __sio(var)(sub_b); \
+      else                    __sio(var)(b).v.u16 = __sio(var)(sub_b); \
+      break; \
+    case 32: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s32 = __sio(var)(sub_b); \
+      else                    __sio(var)(b).v.u32 = __sio(var)(sub_b); \
+      break; \
+    case 64: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s64 = __sio(var)(sub_b); \
+      else                    __sio(var)(b).v.u64 = __sio(var)(sub_b); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  if (__sio(var)(ok))  \
+    __sio(var)(ok) = safe_subx(_dst,  &__sio(var)(a), &__sio(var)(b)); \
+  __sio(var)(ok); \
+})
+
+#define safe_mul(_dst, _a, _b) ({ \
+  typeof(_a) __sio(var)(mul_a) = (_a); \
+  typeof(_b) __sio(var)(mul_b) = (_b); \
+  _Bool __sio(var)(ok) = 1; \
+  struct sio_arg_t __sio(var)(a) = {0}, __sio(var)(b) = {0}; \
+  __sio(var)(a).bits = sizeof(typeof(__sio(var)(mul_a)))*CHAR_BIT; \
+  __sio(var)(b).bits = sizeof(typeof(__sio(var)(mul_b)))*CHAR_BIT; \
+  __sio(var)(a).sign = __sio(m)(is_signed)(__sio(var)(mul_a)); \
+  __sio(var)(b).sign = __sio(m)(is_signed)(__sio(var)(mul_b)); \
+  switch (__sio(var)(a).bits) { \
+    case 8: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s8 = __sio(var)(mul_a); \
+      else                    __sio(var)(a).v.u8 = __sio(var)(mul_a); \
+      break; \
+    case 16: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s16 = __sio(var)(mul_a); \
+      else                    __sio(var)(a).v.u16 = __sio(var)(mul_a); \
+      break; \
+    case 32: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s32 = __sio(var)(mul_a); \
+      else                    __sio(var)(a).v.u32 = __sio(var)(mul_a); \
+      break; \
+    case 64: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s64 = __sio(var)(mul_a); \
+      else                    __sio(var)(a).v.u64 = __sio(var)(mul_a); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  switch (__sio(var)(b).bits) { \
+    case 8: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s8 = __sio(var)(mul_b); \
+      else                    __sio(var)(b).v.u8 = __sio(var)(mul_b); \
+      break; \
+    case 16: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s16 = __sio(var)(mul_b); \
+      else                    __sio(var)(b).v.u16 = __sio(var)(mul_b); \
+      break; \
+    case 32: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s32 = __sio(var)(mul_b); \
+      else                    __sio(var)(b).v.u32 = __sio(var)(mul_b); \
+      break; \
+    case 64: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s64 = __sio(var)(mul_b); \
+      else                    __sio(var)(b).v.u64 = __sio(var)(mul_b); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  if (__sio(var)(ok))  \
+    __sio(var)(ok) = safe_mulx(_dst,  &__sio(var)(a), &__sio(var)(b)); \
+  __sio(var)(ok); \
+})
+
+#define safe_mod(_dst, _a, _b) ({ \
+  typeof(_a) __sio(var)(mod_a) = (_a); \
+  typeof(_b) __sio(var)(mod_b) = (_b); \
+  _Bool __sio(var)(ok) = 1; \
+  struct sio_arg_t __sio(var)(a) = {0}, __sio(var)(b) = {0}; \
+  __sio(var)(a).bits = sizeof(typeof(__sio(var)(mod_a)))*CHAR_BIT; \
+  __sio(var)(b).bits = sizeof(typeof(__sio(var)(mod_b)))*CHAR_BIT; \
+  __sio(var)(a).sign = __sio(m)(is_signed)(__sio(var)(mod_a)); \
+  __sio(var)(b).sign = __sio(m)(is_signed)(__sio(var)(mod_b)); \
+  switch (__sio(var)(a).bits) { \
+    case 8: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s8 = __sio(var)(mod_a); \
+      else                    __sio(var)(a).v.u8 = __sio(var)(mod_a); \
+      break; \
+    case 16: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s16 = __sio(var)(mod_a); \
+      else                    __sio(var)(a).v.u16 = __sio(var)(mod_a); \
+      break; \
+    case 32: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s32 = __sio(var)(mod_a); \
+      else                    __sio(var)(a).v.u32 = __sio(var)(mod_a); \
+      break; \
+    case 64: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s64 = __sio(var)(mod_a); \
+      else                    __sio(var)(a).v.u64 = __sio(var)(mod_a); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  switch (__sio(var)(b).bits) { \
+    case 8: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s8 = __sio(var)(mod_b); \
+      else                    __sio(var)(b).v.u8 = __sio(var)(mod_b); \
+      break; \
+    case 16: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s16 = __sio(var)(mod_b); \
+      else                    __sio(var)(b).v.u16 = __sio(var)(mod_b); \
+      break; \
+    case 32: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s32 = __sio(var)(mod_b); \
+      else                    __sio(var)(b).v.u32 = __sio(var)(mod_b); \
+      break; \
+    case 64: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s64 = __sio(var)(mod_b); \
+      else                    __sio(var)(b).v.u64 = __sio(var)(mod_b); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  if (__sio(var)(ok))  \
+    __sio(var)(ok) = safe_modx(_dst,  &__sio(var)(a), &__sio(var)(b)); \
+  __sio(var)(ok); \
+})
+
+#define safe_div(_dst, _a, _b) ({ \
+  typeof(_a) __sio(var)(div_a) = (_a); \
+  typeof(_b) __sio(var)(div_b) = (_b); \
+  _Bool __sio(var)(ok) = 1; \
+  struct sio_arg_t __sio(var)(a) = {0}, __sio(var)(b) = {0}; \
+  __sio(var)(a).bits = sizeof(typeof(__sio(var)(div_a)))*CHAR_BIT; \
+  __sio(var)(b).bits = sizeof(typeof(__sio(var)(div_b)))*CHAR_BIT; \
+  __sio(var)(a).sign = __sio(m)(is_signed)(__sio(var)(div_a)); \
+  __sio(var)(b).sign = __sio(m)(is_signed)(__sio(var)(div_b)); \
+  switch (__sio(var)(a).bits) { \
+    case 8: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s8 = __sio(var)(div_a); \
+      else                    __sio(var)(a).v.u8 = __sio(var)(div_a); \
+      break; \
+    case 16: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s16 = __sio(var)(div_a); \
+      else                    __sio(var)(a).v.u16 = __sio(var)(div_a); \
+      break; \
+    case 32: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s32 = __sio(var)(div_a); \
+      else                    __sio(var)(a).v.u32 = __sio(var)(div_a); \
+      break; \
+    case 64: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s64 = __sio(var)(div_a); \
+      else                    __sio(var)(a).v.u64 = __sio(var)(div_a); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  switch (__sio(var)(b).bits) { \
+    case 8: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s8 = __sio(var)(div_b); \
+      else                    __sio(var)(b).v.u8 = __sio(var)(div_b); \
+      break; \
+    case 16: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s16 = __sio(var)(div_b); \
+      else                    __sio(var)(b).v.u16 = __sio(var)(div_b); \
+      break; \
+    case 32: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s32 = __sio(var)(div_b); \
+      else                    __sio(var)(b).v.u32 = __sio(var)(div_b); \
+      break; \
+    case 64: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s64 = __sio(var)(div_b); \
+      else                    __sio(var)(b).v.u64 = __sio(var)(div_b); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  if (__sio(var)(ok))  \
+    __sio(var)(ok) = safe_divx(_dst,  &__sio(var)(a), &__sio(var)(b)); \
+  __sio(var)(ok); \
+})
+
+#define safe_shl(_dst, _a, _b) ({ \
+  typeof(_a) __sio(var)(shl_a) = (_a); \
+  typeof(_b) __sio(var)(shl_b) = (_b); \
+  _Bool __sio(var)(ok) = 1; \
+  struct sio_arg_t __sio(var)(a) = {0}, __sio(var)(b) = {0}; \
+  __sio(var)(a).bits = sizeof(typeof(__sio(var)(shl_a)))*CHAR_BIT; \
+  __sio(var)(b).bits = sizeof(typeof(__sio(var)(shl_b)))*CHAR_BIT; \
+  __sio(var)(a).sign = __sio(m)(is_signed)(__sio(var)(shl_a)); \
+  __sio(var)(b).sign = __sio(m)(is_signed)(__sio(var)(shl_b)); \
+  switch (__sio(var)(a).bits) { \
+    case 8: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s8 = __sio(var)(shl_a); \
+      else                    __sio(var)(a).v.u8 = __sio(var)(shl_a); \
+      break; \
+    case 16: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s16 = __sio(var)(shl_a); \
+      else                    __sio(var)(a).v.u16 = __sio(var)(shl_a); \
+      break; \
+    case 32: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s32 = __sio(var)(shl_a); \
+      else                    __sio(var)(a).v.u32 = __sio(var)(shl_a); \
+      break; \
+    case 64: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s64 = __sio(var)(shl_a); \
+      else                    __sio(var)(a).v.u64 = __sio(var)(shl_a); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  switch (__sio(var)(b).bits) { \
+    case 8: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s8 = __sio(var)(shl_b); \
+      else                    __sio(var)(b).v.u8 = __sio(var)(shl_b); \
+      break; \
+    case 16: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s16 = __sio(var)(shl_b); \
+      else                    __sio(var)(b).v.u16 = __sio(var)(shl_b); \
+      break; \
+    case 32: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s32 = __sio(var)(shl_b); \
+      else                    __sio(var)(b).v.u32 = __sio(var)(shl_b); \
+      break; \
+    case 64: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s64 = __sio(var)(shl_b); \
+      else                    __sio(var)(b).v.u64 = __sio(var)(shl_b); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  if (__sio(var)(ok))  \
+    __sio(var)(ok) = safe_shlx(_dst,  &__sio(var)(a), &__sio(var)(b)); \
+  __sio(var)(ok); \
+})
+
+#define safe_shr(_dst, _a, _b) ({ \
+  typeof(_a) __sio(var)(shr_a) = (_a); \
+  typeof(_b) __sio(var)(shr_b) = (_b); \
+  _Bool __sio(var)(ok) = 1; \
+  struct sio_arg_t __sio(var)(a) = {0}, __sio(var)(b) = {0}; \
+  __sio(var)(a).bits = sizeof(typeof(__sio(var)(shr_a)))*CHAR_BIT; \
+  __sio(var)(b).bits = sizeof(typeof(__sio(var)(shr_b)))*CHAR_BIT; \
+  __sio(var)(a).sign = __sio(m)(is_signed)(__sio(var)(shr_a)); \
+  __sio(var)(b).sign = __sio(m)(is_signed)(__sio(var)(shr_b)); \
+  switch (__sio(var)(a).bits) { \
+    case 8: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s8 = __sio(var)(shr_a); \
+      else                    __sio(var)(a).v.u8 = __sio(var)(shr_a); \
+      break; \
+    case 16: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s16 = __sio(var)(shr_a); \
+      else                    __sio(var)(a).v.u16 = __sio(var)(shr_a); \
+      break; \
+    case 32: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s32 = __sio(var)(shr_a); \
+      else                    __sio(var)(a).v.u32 = __sio(var)(shr_a); \
+      break; \
+    case 64: \
+      if (__sio(var)(a).sign) __sio(var)(a).v.s64 = __sio(var)(shr_a); \
+      else                    __sio(var)(a).v.u64 = __sio(var)(shr_a); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  switch (__sio(var)(b).bits) { \
+    case 8: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s8 = __sio(var)(shr_b); \
+      else                    __sio(var)(b).v.u8 = __sio(var)(shr_b); \
+      break; \
+    case 16: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s16 = __sio(var)(shr_b); \
+      else                    __sio(var)(b).v.u16 = __sio(var)(shr_b); \
+      break; \
+    case 32: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s32 = __sio(var)(shr_b); \
+      else                    __sio(var)(b).v.u32 = __sio(var)(shr_b); \
+      break; \
+    case 64: \
+      if (__sio(var)(b).sign) __sio(var)(b).v.s64 = __sio(var)(shr_b); \
+      else                    __sio(var)(b).v.u64 = __sio(var)(shr_b); \
+      break; \
+    default: \
+      __sio(var)(ok) = 0; \
+  } \
+  if (__sio(var)(ok))  \
+    __sio(var)(ok) = safe_shrx(_dst,  &__sio(var)(a), &__sio(var)(b)); \
+  __sio(var)(ok); \
+})
+
+
 #endif /* __GNUC__ */
 
 /*** Helpers for duplicating code easily in safe_cast ***/
@@ -485,8 +836,8 @@ struct sio_arg_t {
 
 
 static inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
-                                        struct sio_arg_t *lhs,
-                                        struct sio_arg_t *rhs) {
+                                        const struct sio_arg_t *const lhs,
+                                        const struct sio_arg_t *const rhs) {
   if (cast == NULL) return 0;
   /* same bit count */
   if (lhs->bits == rhs->bits) { /* sign change */
@@ -617,66 +968,275 @@ static inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
 #undef OPAQUE_SAFE_IOP_PREFIX_MACRO_safe_cast_case_same_tos
 
 
-/*** Per-type addition functions ***/
-
-/* Signed addition logic */
-#define OPAQUE_SAFE_IOP_PREFIX_MACRO_declare_safe_sadd(_name, _type) \
-static inline _Bool safe_add_##_name(_type *dst, _type a, _type b) { \
-  if ((b > 0) && (a > 0)) { /* both positive */ \
-    if (a > __sio(m)(smax)(_type) - b) return 0; \
-  } else if (a < 0 && b < 0) { /* both neg */ \
-    if (a < __sio(m)(smin)(_type) - b)  return 0; \
+/*** Same-type addition macros ***/
+#define safe_uadd(_ok, _type, _ptr, _a, _b) { \
+  if ((_type)(_b) <= (_type)(__sio(m)(umax)(_type) - (_a))) { \
+    if ((_ptr)) { *((_type *)(_ptr)) = (_a) + (_b); } \
+    (_ok) = 1; \
+  } else { \
+    (_ok) = 0; \
   } \
-  if (dst) *dst = a + b; \
-  return 1; \
 }
-__sio(m)(declare_safe_sadd)(s8, int8_t)
-__sio(m)(declare_safe_sadd)(s16, int16_t)
-__sio(m)(declare_safe_sadd)(s32, int32_t)
-__sio(m)(declare_safe_sadd)(s64, int64_t)
-#undef OPAQUE_SAFE_IOP_PREFIX_MACRO_declare_safe_sadd
 
-/* Unsigned addition logic */
-#define OPAQUE_SAFE_IOP_PREFIX_MACRO_declare_safe_uadd(_name, _type) \
-static inline _Bool safe_add_##_name(_type *dst, _type a, _type b) { \
-  if (a > __sio(m)(umax)(_type) - b) return 0; \
-  if (dst) *dst = a + b; \
-  return 1; \
+#define safe_sadd(_ok, _type, _ptr, _a, _b) { \
+  if (((_b) > (_type)0) && ((_a) > (_type)0)) { /*>0*/ \
+    if ((_a) > (_type)(__sio(m)(smax)(_type) - (_b))) (_ok) = 0; \
+    else (_ok) = 1; \
+  } else if (!((_b) > (_type)0) && !((_a) > (_type)0)) { /*<0*/ \
+    if ((_a) < (_type)(__sio(m)(smin)(_type) - (_b))) (_ok) = 0; \
+    else (_ok) = 1; \
+  } else { \
+    (_ok) = 1; \
+  } \
+  if ((_ok) && (_ptr)) { *((_type*)(_ptr)) = (_a) + (_b); } \
 }
-__sio(m)(declare_safe_uadd)(u8, uint8_t)
-__sio(m)(declare_safe_uadd)(u16, uint16_t)
-__sio(m)(declare_safe_uadd)(u32, uint32_t)
-__sio(m)(declare_safe_uadd)(u64, uint64_t)
-#undef OPAQUE_SAFE_IOP_PREFIX_MACRO_declare_safe_uadd
+
+/*** Same-type subtraction macros ***/
+#define safe_usub(_ok, _type, _ptr, _a, _b) { \
+  if ((_a) >= (_b)) { \
+    if ((_ptr)) { *((_type*)(_ptr)) = (_a) - (_b); } \
+    (_ok) = 1; \
+  } else { \
+    (_ok) = 0; \
+  } \
+}
+
+#define safe_ssub(_ok, _type, _ptr, _a, _b) { \
+  if (!((_b) <= 0 && (_a) > (__sio(m)(smax)(_type) + (_b))) && \
+      !((_b) > 0 && (_a) < (__sio(m)(smin)(_type) + (_b)))) { \
+      (_ok) = 1; \
+      if ((_ptr)) { *((_type*)(_ptr)) = (_a) - (_b); } \
+  } else { \
+    (_ok) = 0; \
+  } \
+}
 
 
-/* TODO: convert to for loop on varargs */
-static inline _Bool safe_addx(void *dst,
-                              struct sio_arg_t *a,
-                              struct sio_arg_t *b) {
-  _Bool ok = 0;
-  struct sio_arg_t rhs;
-  /* Ensure cast down for b works or fail here */
-  if (!__sio(f)(safe_cast)(&rhs, a, b))
-    return 0;
+/*** Same-type multiplication macros ***/
+#define safe_umul(_ok, _type, _ptr, _a, _b) { \
+  if (!(_b) || (_a) <= (__sio(m)(umax)(_type) / (_b))) { \
+     (_ok) = 1; \
+    if ((_ptr)) { *((_type*)(_ptr)) = (_a) * (_b); } \
+  } else { \
+    (_ok) = 0; \
+  } \
+}
 
-  if (a->sign) {
-    switch (a->bits) {
-      case 8: ok = safe_add_s8(dst, a->v.s8, rhs.v.s8); break;
-      case 16: ok = safe_add_s16(dst, a->v.s16, rhs.v.s16); break;
-      case 32: ok = safe_add_s32(dst, a->v.s32, rhs.v.s32); break;
-      case 64: ok = safe_add_s64(dst, a->v.s64, rhs.v.s64); break;
-    }
-  } else {
-    switch (a->bits) {
-      case 8: ok = safe_add_u8(dst, a->v.u8, rhs.v.u8); break;
-      case 16: ok = safe_add_u16(dst, a->v.u16, rhs.v.u16); break;
-      case 32: ok = safe_add_u32(dst, a->v.u32, rhs.v.u32); break;
-      case 64: ok = safe_add_u64(dst, a->v.u64, rhs.v.u64); break;
-    }
+#define safe_smul(_ok, _type, _ptr, _a, _b) { \
+  (_ok) = 1; /* clean this up later */ \
+  if ((_a) > 0) {  /* a is positive */ \
+    if ((_b) > 0) {  /* b and a are positive */ \
+      if ((_a) > (__sio(m)(smax)(_type) / (_b))) { \
+        (_ok) = 0; \
+      } \
+    } else { /* a positive, b non-positive */ \
+      if ((_b) < (__sio(m)(smin)(_type) / (_a))) { \
+        (_ok) = 0; \
+      } \
+    } /* a positive, b non-positive */ \
+  } else { /* a is non-positive */ \
+    if ((_b) > 0) { /* a is non-positive, b is positive */ \
+      if ((_a) < (__sio(m)(smin)(_type) / (_b))) { \
+      (_ok) = 0; \
+      } \
+    } else { /* a and b are non-positive */ \
+      if( ((_a) != 0) && ((_b) < (__sio(m)(smax)(_type) / (_a)))) { \
+        (_ok) = 0; \
+      } \
+    } /* end if a and b are non-positive */ \
+  } /* end if a is non-positive */ \
+  if ((_ok) && (_ptr)) { *((_type*)(_ptr)) = (_a) * (_b); } \
+}
+
+/*** Same-type division macros ***/
+
+/* div-by-zero is the only thing addressed */
+#define safe_udiv(_ok, _type, _ptr, _a, _b) { \
+  if ((_b) != 0) { \
+    if ((_ptr)) { *((_type*)(_ptr)) = (_a) / (_b); } \
+    (_ok) = 1; \
+  } else { \
+    (_ok) = 0; \
+  } \
+}
+
+/* Addreses div by zero and smin -1 */
+#define safe_sdiv(_ok, _type, _ptr, _a, _b) { \
+  if ((_b) != 0 && \
+      (((_a) != __sio(m)(smin)(_type)) || ((_b) != (_type)-1))) { \
+    if ((_ptr)) { *((_type*)(_ptr)) = (_a) / (_b); } \
+    (_ok) = 1; \
+  } else { \
+    (_ok) = 0; \
+  } \
+}
+
+
+/*** Same-type modulo macros ***/
+#define safe_umod(_ok, _type, _ptr, _a, _b) { \
+  if ((_b) != 0) { \
+    if ((_ptr)) { *((_type*)(_ptr)) = (_a) % (_b); } \
+    (_ok) = 1; \
+  } else { \
+    (_ok) = 0; \
+  } \
+}
+
+/* Addreses mod by zero and smin -1 */
+#define safe_smod(_ok, _type, _ptr, _a, _b) { \
+  if ((_b) != 0 && \
+      (((_a) != __sio(m)(smin)(_type)) || ((_b) != (_type)-1))) { \
+    if ((_ptr)) { *((_type*)(_ptr)) = (_a) % (_b); } \
+    (_ok) = 1; \
+  } else { \
+    (_ok) = 0; \
+  } \
+}
+
+/*** Same-type left-shift macros ***/
+#define safe_sshl(_ok, _type, _ptr, _a, _b) { \
+  if (!((_a) > 0 || (_a) == 0) || \
+      !((_b) > 0 || (_b) == 0) || \
+      ((_b) >= sizeof(_type)*CHAR_BIT) || \
+      ((_a) > (__sio(m)(smax)(_type) >> (_b)))) { \
+    (_ok) = 0; \
+  } else { \
+    (_ok) = 1; \
+    if ((_ptr)) { *((_type*)(_ptr)) = (_a) << (_b); } \
+  } \
+}
+
+#define safe_ushl(_ok, _type, _ptr, _a, _b) { \
+  if (((_b) >= sizeof(_type)*CHAR_BIT) || \
+      ((_a) > (__sio(m)(umax)(_type) >> (_b)))) { \
+    (_ok) = 0; \
+  } else { \
+    (_ok) = 1; \
+    if ((_ptr)) { *((_type*)(_ptr)) = (_a) << (_b); } \
+  } \
+}
+
+/*** Same-type right-shift macros ***/
+/* XXX: CERT doesnt recommend failing on -a, but it is undefined */
+#define safe_sshr(_ok, _type, _ptr, _a, _b) { \
+  if (!((_a) > 0 || (_a) == 0) || \
+      !((_b) > 0 || (_b) == 0) || \
+      ((_b) >= sizeof(_type)*CHAR_BIT)) { \
+    (_ok) = 0; \
+  } else { \
+    (_ok) = 1; \
+    if ((_ptr)) { *((_type*)(_ptr)) = (_a) >> (_b); } \
+  } \
+}
+
+/* this doesn't whine if 0 >> n. */
+#define safe_ushr(_ok, _type, _ptr, _a, _b) { \
+  if ((_b) >= (sizeof(_type)*CHAR_BIT)) { \
+    (_ok) = 0; \
+  } else { \
+    (_ok) = 1; \
+    if ((_ptr)) { *((_type*)(_ptr)) = (_a) >> (_b); } \
+  } \
+}
+
+/*** Actual interface declarations ***/
+
+#define OPAQUE_SAFE_IOP_PREFIX_MACRO_declare_safe_op(_OP) \
+  static inline _Bool safe_##_OP##x(void *dst, \
+                                const struct sio_arg_t *const a, \
+                                const struct sio_arg_t *const b) { \
+    _Bool ok = 0; \
+    struct sio_arg_t rhs; \
+    /* Ensure cast down for b works or fail here */ \
+    if (!__sio(f)(safe_cast)(&rhs, a, b)) \
+      return 0; \
+   \
+    if (a->sign) { \
+      switch (a->bits) { \
+        case 8: safe_s##_OP(ok, int8_t, dst, a->v.s8, rhs.v.s8); break; \
+        case 16: safe_s##_OP(ok, int16_t, dst, a->v.s16, rhs.v.s16); break; \
+        case 32: safe_s##_OP(ok, int32_t, dst, a->v.s32, rhs.v.s32); break; \
+        case 64: safe_s##_OP(ok, int64_t, dst, a->v.s64, rhs.v.s64); break; \
+      } \
+    } else { \
+      switch (a->bits) { \
+        case 8: safe_u##_OP(ok, uint8_t, dst, a->v.u8, rhs.v.u8); break; \
+        case 16: safe_u##_OP(ok, uint16_t, dst, a->v.u16, rhs.v.u16); break; \
+        case 32: safe_u##_OP(ok, uint32_t, dst, a->v.u32, rhs.v.u32); break; \
+        case 64: safe_u##_OP(ok, uint64_t, dst, a->v.u64, rhs.v.u64); break; \
+      } \
+    } \
+    return ok; \
   }
-  return ok;
-}
+
+__sio(m)(declare_safe_op)(add)
+__sio(m)(declare_safe_op)(sub)
+__sio(m)(declare_safe_op)(mul)
+__sio(m)(declare_safe_op)(div)
+__sio(m)(declare_safe_op)(mod)
+__sio(m)(declare_safe_op)(shl)
+__sio(m)(declare_safe_op)(shr)
+
+#undef OPAQUE_SAFE_IOP_PREFIX_MACRO_declare_safe_op
+
+
+#define OPAQUE_SAFE_IOP_PREFIX_MACRO_declare_safe_opv(_OP) \
+  static inline _Bool safe_##_OP##v(void *dst, size_t args, ...) { \
+    struct sio_arg_t total = {0}; \
+    va_list ap; \
+ \
+    va_start(ap, args); \
+    /* Grab the first argument so we can prep total */ \
+    { \
+      const struct sio_arg_t *const lhs = va_arg(ap, const struct sio_arg_t *const); \
+      if (!lhs) return 0; \
+ \
+      total.bits = lhs->bits; \
+      total.sign = lhs->sign; \
+      /* Copy over using the largest supported type */ \
+      total.v.ull = lhs->v.ull; \
+     } \
+ \
+    while (--args) { \
+      const struct sio_arg_t *const rhs = va_arg(ap, const struct sio_arg_t *const); \
+      if (!rhs) return 0; \
+      /* XXX: test to ensure passing the v.ull works for any type in the union */ \
+      if (!safe_##_OP##x(&(total.v.ull), &total, rhs)) \
+        return 0; \
+    } \
+    if (dst) { \
+      switch (total.bits) { \
+        /* Since the sign doesn't change the storage type - assign directly */ \
+        case 8: \
+          *((uint8_t *)dst) = total.v.u8; \
+          break; \
+        case 16: \
+          *((uint16_t *)dst) = total.v.u16; \
+          break; \
+        case 32: \
+          *((uint32_t *)dst) = total.v.u32; \
+          break; \
+        case 64: \
+          *((uint64_t *)dst) = total.v.u64; \
+          break; \
+        default: \
+          return 0; \
+      } \
+    } \
+    return 1; \
+  }
+
+__sio(m)(declare_safe_opv)(add)
+__sio(m)(declare_safe_opv)(sub)
+__sio(m)(declare_safe_opv)(mul)
+__sio(m)(declare_safe_opv)(div)
+__sio(m)(declare_safe_opv)(mod)
+__sio(m)(declare_safe_opv)(shl)
+__sio(m)(declare_safe_opv)(shr)
+
+#undef OPAQUE_SAFE_IOP_PREFIX_MACRO_declare_safe_opv
+
+
 
 
 
@@ -768,6 +1328,7 @@ static inline _Bool safe_addx(void *dst,
 /* Primary interface macros */
 /* type checking is compiled out if NDEBUG supplied. */
 #if defined(__GNUC__)
+#if 0 /* going away */
 #define safe_add_macro_only(_ptr, __a, __b) \
  ({ int __sio(var)(ok) = 0; \
     typeof(__a) __sio(var)(_a) = (__a), __sio(var)(_b); \
@@ -788,6 +1349,7 @@ static inline _Bool safe_addx(void *dst,
       } \
     } \
     __sio(var)(ok); })
+#endif /* going away */
 
 #define safe_inc(_pA) ({ \
   typeof(_pA) __sio(var)(pA) = (_pA); \
@@ -825,7 +1387,8 @@ static inline _Bool safe_addx(void *dst,
    safe_add(&(__sio(var)(r)), __sio(var)(r), __sio(var)(d)) && \
    safe_add((_ptr), __sio(var)(r), __sio(var)(e))); })
 
-#define safe_sub(_ptr, __a, __b) \
+#if 0
+#define safe_sub_macro_only(_ptr, __a, __b) \
  ({ int __sio(var)(ok) = 0; \
     typeof(__a) __sio(var)(_a) = (__a); \
     typeof(__b) __sio(var)(_b) = (__b); \
@@ -846,6 +1409,7 @@ static inline _Bool safe_addx(void *dst,
       } \
     } \
     __sio(var)(ok); })
+#endif
 
 #define safe_dec(_pA) ({ \
   typeof(_pA) __sio(var)(pA) = (_pA); \
@@ -885,7 +1449,7 @@ static inline _Bool safe_addx(void *dst,
 
 
  
-#define safe_mul(_ptr, __a, __b) \
+#define safe_mul_macro_only(_ptr, __a, __b) \
  ({ int __sio(var)(ok) = 0; \
     typeof(__a) __sio(var)(_a) = (__a); \
     typeof(__b) __sio(var)(_b) = (__b); \
@@ -937,7 +1501,7 @@ static inline _Bool safe_addx(void *dst,
    safe_mul(&(__sio(var)(r)), __sio(var)(r), __sio(var)(d)) && \
    safe_mul((_ptr), __sio(var)(r), __sio(var)(e))); })
 
-#define safe_div(_ptr, __a, __b) \
+#define safe_div_macro_only(_ptr, __a, __b) \
  ({ int __sio(var)(ok) = 0; \
     typeof(__a) __sio(var)(_a) = (__a); \
     typeof(__b) __sio(var)(_b) = (__b); \
@@ -989,7 +1553,7 @@ static inline _Bool safe_addx(void *dst,
    safe_div(&(__sio(var)(r)), __sio(var)(r), __sio(var)(d)) && \
    safe_div((_ptr), __sio(var)(r), __sio(var)(e))); })
 
-#define safe_mod(_ptr, __a, __b) \
+#define safe_mod_macro_only(_ptr, __a, __b) \
  ({ int __sio(var)(ok) = 0; \
     typeof(__a) __sio(var)(_a) = (__a); \
     typeof(__b) __sio(var)(_b) = (__b); \
@@ -1044,7 +1608,7 @@ static inline _Bool safe_addx(void *dst,
 /* XXX: does it matter if __a and __b are the same type?
  *      signedness is useful to have incommon.
  */
-#define safe_shl(_ptr, __a, __b) \
+#define safe_shl_macro_only(_ptr, __a, __b) \
  ({ int __sio(var)(ok) = 0; \
     typeof(__a) __sio(var)(_a) = (__a), __sio(var)(_b); \
     typeof(_ptr) __sio(var)(p) = (_ptr); \
@@ -1065,7 +1629,7 @@ static inline _Bool safe_addx(void *dst,
     } \
     __sio(var)(ok); })
 
-#define safe_shr(_ptr, __a, __b) \
+#define safe_shr_macro_only(_ptr, __a, __b) \
  ({ int __sio(var)(ok) = 0; \
     typeof(__a) __sio(var)(_a) = (__a), __sio(var)(_b); \
     typeof(_ptr) __sio(var)(p) = (_ptr); \
@@ -1090,153 +1654,6 @@ static inline _Bool safe_addx(void *dst,
 
 
 /*** Safe integer operation implementation macros ***/
-
-#define safe_uadd(_ptr, _a, _b) \
- ({ int __sio(var)(ok) = 0; \
-    if ((typeof(_a))(_b) <= (typeof(_a))(__sio(m)(umax)(typeof(_a)) - (_a))) { \
-      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) + (_b); } \
-      __sio(var)(ok) = 1; \
-    } __sio(var)(ok); })
-
-#define safe_sadd(_ptr, _a, _b) \
-  ({ int __sio(var)(ok) = 1; \
-     if (((_b) > (typeof(_a))0) && ((_a) > (typeof(_a))0)) { /*>0*/ \
-       if ((_a) > (typeof(_a))(__sio(m)(smax)(typeof(_a)) - (_b))) __sio(var)(ok) = 0; \
-     } else if (!((_b) > (typeof(_a))0) && !((_a) > (typeof(_a))0)) { /*<0*/ \
-       if ((_a) < (typeof(_a))(__sio(m)(smin)(typeof(_a)) - (_b))) __sio(var)(ok) = 0; \
-     } \
-     if (__sio(var)(ok) && (_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) + (_b); } \
-     __sio(var)(ok); })
-
-#define safe_usub(_ptr, _a, _b) \
-  ({ int __sio(var)(ok) = 0; \
-     if ((_a) >= (_b)) { \
-       if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) - (_b); } \
-       __sio(var)(ok) = 1; \
-     } \
-     __sio(var)(ok); }) 
-
-#define safe_ssub(_ptr, _a, _b) \
-  ({ int __sio(var)(ok) = 0; \
-     if (!((_b) <= 0 && (_a) > (__sio(m)(smax)(typeof(_a)) + (_b))) && \
-         !((_b) > 0 && (_a) < (__sio(m)(smin)(typeof(_a)) + (_b)))) { \
-         __sio(var)(ok) = 1; \
-         if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) - (_b); } \
-     } \
-     __sio(var)(ok); }) 
-
-#define safe_umul(_ptr, _a, _b) \
-  ({ int __sio(var)(ok) = 0; \
-     if (!(_b) || (_a) <= (__sio(m)(umax)(typeof(_a)) / (_b))) { \
-       __sio(var)(ok) = 1; \
-       if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) * (_b); } \
-     } \
-     __sio(var)(ok); }) 
-
-#define safe_smul(_ptr, _a, _b) \
-  ({ int __sio(var)(ok) = 1; \
-    if ((_a) > 0) {  /* a is positive */ \
-      if ((_b) > 0) {  /* b and a are positive */ \
-        if ((_a) > (__sio(m)(smax)(typeof(_a)) / (_b))) { \
-          __sio(var)(ok) = 0; \
-        } \
-      } /* end if a and b are positive */ \
-      else { /* a positive, b non-positive */ \
-        if ((_b) < (__sio(m)(smin)(typeof(_a)) / (_a))) { \
-          __sio(var)(ok) = 0; \
-        } \
-      } /* a positive, b non-positive */ \
-    } /* end if a is positive */ \
-    else { /* a is non-positive */ \
-      if ((_b) > 0) { /* a is non-positive, b is positive */ \
-        if ((_a) < (__sio(m)(smin)(typeof(_a)) / (_b))) { \
-        __sio(var)(ok) = 0; \
-        } \
-      } /* end if a is non-positive, b is positive */ \
-      else { /* a and b are non-positive */ \
-        if( ((_a) != 0) && ((_b) < (__sio(m)(smax)(typeof(_a)) / (_a)))) { \
-          __sio(var)(ok) = 0; \
-        } \
-      } /* end if a and b are non-positive */ \
-    } /* end if a is non-positive */ \
-    if (__sio(var)(ok) && (_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) * (_b); } \
-    __sio(var)(ok); }) 
-
-/* div-by-zero is the only thing addressed */
-#define safe_udiv(_ptr, _a, _b) \
- ({ int __sio(var)(ok) = 0; \
-    if ((_b) != 0) { \
-      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) / (_b); } \
-      __sio(var)(ok) = 1; \
-    } \
-    __sio(var)(ok); })
-
-/* Addreses div by zero and smin -1 */
-#define safe_sdiv(_ptr, _a, _b) \
- ({ int __sio(var)(ok) = 0; \
-    if ((_b) != 0 && \
-        (((_a) != __sio(m)(smin)(typeof(_a))) || ((_b) != (typeof(_b))-1))) { \
-      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) / (_b); } \
-      __sio(var)(ok) = 1; \
-    } \
-    __sio(var)(ok); })
-
-#define safe_umod(_ptr, _a, _b) \
- ({ int __sio(var)(ok) = 0; \
-    if ((_b) != 0) { \
-      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) % (_b); } \
-      __sio(var)(ok) = 1; \
-    } \
-    __sio(var)(ok); })
-
-#define safe_smod(_ptr, _a, _b) \
- ({ int __sio(var)(ok) = 0; \
-    if ((_b) != 0 && \
-        (((_a) != __sio(m)(smin)(typeof(_a))) || ((_b) != (typeof(_b))-1))) { \
-      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) % (_b); } \
-      __sio(var)(ok) = 1; \
-    } \
-    __sio(var)(ok); })
-
-#define safe_sshl(_ptr, _a, _b) \
- ({ int __sio(var)(ok) = 1; \
-    if (!((_a) > 0 || (_a) == 0) || \
-        !((_b) > 0 || (_b) == 0) || \
-        ((_b) >= sizeof(typeof(_a))*CHAR_BIT) || \
-        ((_a) > (__sio(m)(smax)(typeof(_a)) >> (_b)))) \
-      __sio(var)(ok) = 0; \
-    else \
-      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) << (_b); } \
-    __sio(var)(ok); })
-
-#define safe_ushl(_ptr, _a, _b) \
- ({ int __sio(var)(ok) = 1; \
-    if (((_b) >= sizeof(typeof(_a))*CHAR_BIT) || \
-        ((_a) > (__sio(m)(umax)(typeof(_a)) >> (_b)))) \
-      __sio(var)(ok) = 0; \
-    else \
-      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) << (_b); } \
-    __sio(var)(ok); })
-
-/* XXX: CERT doesnt recommend failing on -a, but it is undefined */
-#define safe_sshr(_ptr, _a, _b) \
- ({ int __sio(var)(ok) = 1; \
-    if (!((_a) > 0 || (_a) == 0) || \
-        !((_b) > 0 || (_b) == 0) || \
-        ((_b) >= sizeof(typeof(_a))*CHAR_BIT)) \
-      __sio(var)(ok) = 0; \
-    else \
-      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) >> (_b); } \
-    __sio(var)(ok); })
-
-/* this doesn't whine if 0 >> n. */
-#define safe_ushr(_ptr, _a, _b) \
- ({ int __sio(var)(ok) = 1; \
-    if ((_b) >= (sizeof(typeof(_a))*CHAR_BIT)) \
-      __sio(var)(ok) = 0; \
-    else \
-      if ((_ptr)) { *((typeof(_a)*)(_ptr)) = (_a) >> (_b); } \
-    __sio(var)(ok); })
 
 
 #endif
