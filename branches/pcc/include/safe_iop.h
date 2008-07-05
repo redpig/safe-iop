@@ -3,6 +3,7 @@
  * Author:: Will Drewry <redpig@dataspill.org>
  * 
  * To Do:
+ * - OPTIMIZE!
  * - Clean up TODOs
  * - Clean out legacy code and fix up style (line len, etc)
  * - Get PCC working
