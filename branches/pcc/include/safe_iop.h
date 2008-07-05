@@ -5,7 +5,7 @@
  * To Do:
  * - Clean up TODOs
  * - Clean out legacy code and fix up style (line len, etc)
- * - Get compiling under PCC
+ * - Get PCC working
  * - Add tests for typeof() specific notes
  * - Optimize safe type casting to perform minimal operations
  * - Review existing tests for neglected cases
@@ -17,6 +17,8 @@
  *
  * History:
  * = 0.4
+ * - Test out with other compilers
+ * - Compiles under pcc (but not fully functional)
  * - Rewrote to support passing consts and compilers without typeof()
  * -- added safe_<op>x  -- primary interface
  * -- added safe_<op>v  -- varargs interface
