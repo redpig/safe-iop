@@ -594,7 +594,6 @@ struct sio_arg_t {
     return 1; \
    } break;
 
-
 #define OPAQUE_SAFE_IOP_PREFIXI_MACRO_safe_cast_case_same_tou(_bits, _type) \
   case _bits: { \
     if (rhs->v.s##_bits < 0) \
@@ -610,20 +609,19 @@ struct sio_arg_t {
        /* 8 is currently the smallest so this should never be reached */ \
         case 8: \
           cast->v.s8 = (int8_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 16: \
           cast->v.s16 = (int16_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 32: \
           cast->v.s32 = (int32_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 64: \
           cast->v.s64 = (int64_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         default: \
           return 0; \
       } \
-      return 1; \
     } break;
 
 
@@ -633,20 +631,19 @@ struct sio_arg_t {
        /* 8 is currently the smallest so this should never be reached */ \
         case 8: \
           cast->v.u8 = (uint8_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 16: \
           cast->v.u16 = (uint16_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 32: \
           cast->v.u32 = (uint32_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 64: \
           cast->v.u64 = (uint64_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         default: \
           return 0; \
       } \
-      return 1; \
     } break;
 
 #define OPAQUE_SAFE_IOP_PREFIXI_MACRO_safe_cast_up_tos(_bits) \
@@ -657,27 +654,26 @@ struct sio_arg_t {
           if (rhs->v.u##_bits > __sio(m)(smax)(uint8_t)) \
             return 0; \
           cast->v.s8 = (int8_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 16: \
           /* SAFE: GCC warns on this before 4.3 (-Wno-type-limits) */ \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint16_t)) \
             return 0; \
           cast->v.s16 = (int16_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 32: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint32_t)) \
             return 0; \
           cast->v.s32 = (int32_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 64: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint64_t)) \
             return 0; \
           cast->v.s64 = (int64_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         default: \
           return 0; \
       } \
-      return 1; \
     } break;
 
 #define OPAQUE_SAFE_IOP_PREFIXI_MACRO_safe_cast_up_tou(_bits) \
@@ -688,7 +684,7 @@ struct sio_arg_t {
           if (rhs->v.s##_bits < 0) \
             return 0; \
           cast->v.u8 = (uint8_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         /* rhs should always be smaller than umax(lhs) so we only check \
          * for negative  \
          */ \
@@ -696,21 +692,20 @@ struct sio_arg_t {
           if (rhs->v.s##_bits < 0) \
             return 0; \
           cast->v.u16 = (uint16_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         case 32: \
           if (rhs->v.s##_bits < 0) \
             return 0; \
           cast->v.u32 = (uint32_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         case 64: \
           if (rhs->v.s##_bits < 0) \
             return 0; \
           cast->v.u64 = (uint64_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         default: \
           return 0; \
       } \
-      return 1; \
     } break;
 
 
@@ -723,30 +718,29 @@ struct sio_arg_t {
               rhs->v.s##_bits > __sio(m)(smax)(int8_t)) \
             return 0; \
           cast->v.s8 = (int8_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         case 16: \
           if (rhs->v.s##_bits < __sio(m)(smin)(int16_t) || \
               rhs->v.s##_bits > __sio(m)(smax)(int16_t)) \
             return 0; \
           cast->v.s16 = (int16_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         case 32: \
          if (rhs->v.s##_bits < __sio(m)(smin)(int32_t) || \
              rhs->v.s##_bits > __sio(m)(smax)(int32_t)) \
            return 0; \
           cast->v.s32 = (int32_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         case 64: \
           /* this is unreachable unless we add a larger possible size */ \
          if (rhs->v.s##_bits < __sio(m)(smin)(int64_t) || \
              rhs->v.s##_bits > __sio(m)(smax)(int64_t)) \
            return 0; \
           cast->v.s64 = (int64_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         default: \
           return 0; \
       } \
-      return 1; \
     } break;
 
 
@@ -757,27 +751,26 @@ struct sio_arg_t {
           if (rhs->v.u##_bits > __sio(m)(umax)(uint8_t)) \
             return 0; \
           cast->v.u8 = (uint8_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 16: \
           if (rhs->v.u##_bits > __sio(m)(umax)(uint16_t)) \
             return 0; \
           cast->v.u16 = (uint16_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 32: \
           if (rhs->v.u##_bits > __sio(m)(umax)(uint32_t)) \
             return 0; \
           cast->v.u32 = (uint32_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 64: \
           /* this is unreachable unless we add a larger possible size */ \
           if (rhs->v.u##_bits > __sio(m)(umax)(uint64_t)) \
             return 0; \
           cast->v.u64 = (uint64_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         default: \
           return 0; \
       } \
-      return 1; \
     } break;
 
 #define OPAQUE_SAFE_IOP_PREFIXI_MACRO_safe_cast_down_tos(_bits) \
@@ -788,26 +781,25 @@ struct sio_arg_t {
           if (rhs->v.u##_bits > __sio(m)(smax)(uint8_t)) \
             return 0; \
           cast->v.s8 = (int8_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 16: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint16_t)) \
             return 0; \
           cast->v.s16 = (int16_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 32: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint32_t)) \
             return 0; \
           cast->v.s32 = (int32_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         case 64: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint64_t)) \
             return 0; \
           cast->v.s64 = (int64_t)rhs->v.u##_bits; \
-          break; \
+          return 1; \
         default: \
           return 0; \
       } \
-      return 1; \
     } break;
 
 #define OPAQUE_SAFE_IOP_PREFIXI_MACRO_safe_cast_down_tou(_bits) \
@@ -819,32 +811,34 @@ struct sio_arg_t {
               rhs->v.s##_bits > __sio(m)(umax)(uint8_t)) \
             return 0; \
           cast->v.u8 = (uint8_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         case 16: \
           if (rhs->v.s##_bits < 0 || \
               rhs->v.s##_bits > __sio(m)(umax)(uint16_t)) \
             return 0; \
           cast->v.u16 = (uint16_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         case 32: \
           if (rhs->v.s##_bits < 0 || \
               rhs->v.s##_bits > __sio(m)(umax)(uint32_t)) \
             return 0; \
           cast->v.u32 = (uint32_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         case 64: \
           if (rhs->v.s##_bits < 0 || \
               rhs->v.s##_bits > __sio(m)(umax)(uint64_t)) \
             return 0; \
           cast->v.u64 = (uint64_t)rhs->v.s##_bits; \
-          break; \
+          return 1; \
         default: \
           return 0; \
       } \
-      return 1; \
     } break;
 
 
+/* XXX: this function would probably benefit from extern inline or even just not
+ * being inlined...
+ */
 static inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
                                         const struct sio_arg_t *const lhs,
                                         const struct sio_arg_t *const rhs) {
@@ -1251,8 +1245,6 @@ __sioi(m)(declare_safe_opv)(shl)
 __sioi(m)(declare_safe_opv)(shr)
 
 #undef OPAQUE_SAFE_IOP_PREFIXI_MACRO_declare_safe_opv
-
-
 
 
 
