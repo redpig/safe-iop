@@ -128,9 +128,9 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
  * mixed types or mixed sizes will unconditionally return 0;
  */
 #define OPAQUE_SAFE_IOP_PREFIX_MACRO_smax(_type) \
-  ((_type)(~((_type) 1 << ((sizeof(_type) * CHAR_BIT) - 1))))
+  (_type)(~(_type)((_type) 1 << (_type)((sizeof(_type) * CHAR_BIT) - 1)))
 #define OPAQUE_SAFE_IOP_PREFIX_MACRO_smin(_type) \
-  ((_type)(-OPAQUE_SAFE_IOP_PREFIX_MACRO_smax(_type) - 1))
+  (_type)(-(OPAQUE_SAFE_IOP_PREFIX_MACRO_smax(_type)) - 1)
 #define OPAQUE_SAFE_IOP_PREFIX_MACRO_umax(_type) ((_type)(~((_type) 0)))
 
 
@@ -1102,8 +1102,8 @@ static inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
 
 /*** Same-type left-shift macros ***/
 #define safe_sshl(_ok, _type, _ptr, _a, _b) { \
-  if (!((_a) > 0 || (_a) == 0) || \
-      !((_b) > 0 || (_b) == 0) || \
+  if (((_a) < 0) || \
+      ((_b) < 0) || \
       ((_b) >= sizeof(_type)*CHAR_BIT) || \
       ((_a) > (__sio(m)(smax)(_type) >> (_b)))) { \
     (_ok) = 0; \
@@ -1147,6 +1147,8 @@ static inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
 }
 
 /*** Actual interface declarations ***/
+#define safe_inc(_type, _p) safe_addx(_p, sio_##_type(*_p), sio_##_type(1))
+#define safe_dec(_type, _p) safe_subx(_p, sio_##_type(*_p), sio_##_type(1))
 
 #define OPAQUE_SAFE_IOP_PREFIXI_MACRO_declare_safe_op(_OP) \
   static inline _Bool safe_##_OP##x(void *dst, \
@@ -1358,11 +1360,13 @@ __sioi(m)(declare_safe_opv)(shr)
     __sio(var)(ok); })
 #endif /* going away */
 
+#if 0
 #define safe_inc(_pA) ({ \
   typeof(_pA) __sio(var)(pA) = (_pA); \
   safe_add(__sio(var)(pA), *(__sio(var)(pA)), \
            ((typeof(*(__sio(var)(pA))))1)); \
 })
+#endif
 
 #define safe_add3(_ptr, _A, _B, _C) \
 ({ typeof(_A) __sio(var)(a) = (_A); \
@@ -1418,11 +1422,13 @@ __sioi(m)(declare_safe_opv)(shr)
     __sio(var)(ok); })
 #endif
 
+#if 0
 #define safe_dec(_pA) ({ \
   typeof(_pA) __sio(var)(pA) = (_pA); \
   safe_sub(__sio(var)(pA), *__sio(var)(pA), \
            ((typeof(*(__sio(var)(pA))))1)); \
 })
+#endif
 /* These are sequentially performed */
 #define safe_sub3(_ptr, _A, _B, _C) \
 ({ typeof(_A) __sio(var)(a) = (_A); \
