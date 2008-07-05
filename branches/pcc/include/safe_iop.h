@@ -3,12 +3,14 @@
  * Author:: Will Drewry <redpig@dataspill.org>
  * 
  * To Do:
+ * - try out type-marking the destination pointer
+ * - rewrite safe_iopf to use type markup, maybe. maybe not.
  * - OPTIMIZE!
  * - Clean up TODOs
  * - Clean out legacy code and fix up style (line len, etc)
  * - Get PCC working
  * - Test out with other compilers
- * - Add tests for typeof() specific notes
+ * - Add tests for typeof() specific macros
  * - Optimize safe type casting to perform minimal operations
  * - Review existing tests for neglected cases
  * - Consider adding support for disabling safe_cast as it is expensive.
