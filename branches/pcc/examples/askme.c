@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
   width = strtoul(fgets(buf, 1023, stdin), NULL, 10);
   printf("Please specify the height of the new image: ");
   height = strtoul(fgets(buf, 1023, stdin), NULL, 10);
-  if (safe_mul(&pixels, width, height)) {
+  if (safe_mulx(&pixels, sio_u32(width), sio_u32(height))) {
     printf("The resulting image will have %u pixels.\n", pixels);
     return 0;
   } else {
