@@ -589,7 +589,7 @@ struct sio_arg_t {
   case _bits: { \
     if (rhs->v.u##_bits > __sio(m)(smax)(u##_type)) \
       return 0; \
-    *cast = *sio_s##_bits(((_type)rhs->v.u##_bits)); \
+    cast->v.u##_bits = (_type)rhs->v.u##_bits; \
     return 1; \
    } break;
 
@@ -598,7 +598,7 @@ struct sio_arg_t {
   case _bits: { \
     if (rhs->v.s##_bits < 0) \
       return 0; \
-    *cast = *sio_u##_bits((_type)rhs->v.u##_bits); \
+    cast->v.u##_bits = (_type)rhs->v.s##_bits; \
     return 1; \
    } break;
 
@@ -608,16 +608,16 @@ struct sio_arg_t {
       switch (lhs->bits) { \
        /* 8 is currently the smallest so this should never be reached */ \
         case 8: \
-         *cast = *sio_s8((int8_t)rhs->v.s##_bits); \
+          cast->v.s8 = (int8_t)rhs->v.u##_bits; \
           break; \
         case 16: \
-          *cast = *sio_s16((int16_t)rhs->v.s##_bits); \
+          cast->v.s16 = (int16_t)rhs->v.u##_bits; \
           break; \
         case 32: \
-          *cast = *sio_s32((int32_t)rhs->v.s##_bits); \
+          cast->v.s32 = (int32_t)rhs->v.u##_bits; \
           break; \
         case 64: \
-          *cast = *sio_s64((int64_t)rhs->v.s##_bits); \
+          cast->v.s64 = (int64_t)rhs->v.u##_bits; \
           break; \
         default: \
           return 0; \
@@ -631,16 +631,16 @@ struct sio_arg_t {
       switch (lhs->bits) { \
        /* 8 is currently the smallest so this should never be reached */ \
         case 8: \
-          *cast = *sio_u8((uint8_t)rhs->v.u##_bits); \
+          cast->v.u8 = (uint8_t)rhs->v.u##_bits; \
           break; \
         case 16: \
-          *cast = *sio_u16((uint16_t)rhs->v.u##_bits); \
+          cast->v.u16 = (uint16_t)rhs->v.u##_bits; \
           break; \
         case 32: \
-          *cast = *sio_u32((uint32_t)rhs->v.u##_bits); \
+          cast->v.u32 = (uint32_t)rhs->v.u##_bits; \
           break; \
         case 64: \
-          *cast = *sio_u64((uint64_t)rhs->v.u##_bits); \
+          cast->v.u64 = (uint64_t)rhs->v.u##_bits; \
           break; \
         default: \
           return 0; \
@@ -655,23 +655,23 @@ struct sio_arg_t {
         case 8: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint8_t)) \
             return 0; \
-          *cast = *sio_s8((int8_t)rhs->v.u##_bits); \
+          cast->v.s8 = (int8_t)rhs->v.u##_bits; \
           break; \
         case 16: \
           /* SAFE: GCC warns on this before 4.3 (-Wno-type-limits) */ \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint16_t)) \
             return 0; \
-          *cast = *sio_s16((int16_t)rhs->v.u##_bits); \
+          cast->v.s16 = (int16_t)rhs->v.u##_bits; \
           break; \
         case 32: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint32_t)) \
             return 0; \
-          *cast = *sio_s32((int32_t)rhs->v.u##_bits); \
+          cast->v.s32 = (int32_t)rhs->v.u##_bits; \
           break; \
         case 64: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint64_t)) \
             return 0; \
-          *cast = *sio_s64((int64_t)rhs->v.u##_bits); \
+          cast->v.s64 = (int64_t)rhs->v.u##_bits; \
           break; \
         default: \
           return 0; \
@@ -686,7 +686,7 @@ struct sio_arg_t {
         case 8: \
           if (rhs->v.s##_bits < 0) \
             return 0; \
-          *cast = *sio_u8((uint8_t)rhs->v.s##_bits); \
+          cast->v.u8 = (uint8_t)rhs->v.s##_bits; \
           break; \
         /* rhs should always be smaller than umax(lhs) so we only check \
          * for negative  \
@@ -694,17 +694,17 @@ struct sio_arg_t {
         case 16: \
           if (rhs->v.s##_bits < 0) \
             return 0; \
-          *cast = *sio_u16((uint16_t)rhs->v.s##_bits); \
+          cast->v.u16 = (uint16_t)rhs->v.s##_bits; \
           break; \
         case 32: \
           if (rhs->v.s##_bits < 0) \
             return 0; \
-          *cast = *sio_u32((uint32_t)rhs->v.s##_bits); \
+          cast->v.u32 = (uint32_t)rhs->v.s##_bits; \
           break; \
         case 64: \
           if (rhs->v.s##_bits < 0) \
             return 0; \
-          *cast = *sio_u64((uint64_t)rhs->v.s##_bits); \
+          cast->v.u64 = (uint64_t)rhs->v.s##_bits; \
           break; \
         default: \
           return 0; \
@@ -718,29 +718,29 @@ struct sio_arg_t {
     case _bits: { \
       switch (lhs->bits) { \
         case 8: \
-         if (rhs->v.s##_bits < __sio(m)(smin)(int8_t) || \
-             rhs->v.s##_bits > __sio(m)(smax)(int8_t)) \
-           return 0; \
-         *cast = *sio_s8((int8_t)rhs->v.s##_bits); \
+          if (rhs->v.s##_bits < __sio(m)(smin)(int8_t) || \
+              rhs->v.s##_bits > __sio(m)(smax)(int8_t)) \
+            return 0; \
+          cast->v.s8 = (int8_t)rhs->v.s##_bits; \
           break; \
         case 16: \
-         if (rhs->v.s##_bits < __sio(m)(smin)(int16_t) || \
-             rhs->v.s##_bits > __sio(m)(smax)(int16_t)) \
-           return 0; \
-          *cast = *sio_s16((int16_t)rhs->v.s##_bits); \
+          if (rhs->v.s##_bits < __sio(m)(smin)(int16_t) || \
+              rhs->v.s##_bits > __sio(m)(smax)(int16_t)) \
+            return 0; \
+          cast->v.s16 = (int16_t)rhs->v.s##_bits; \
           break; \
         case 32: \
          if (rhs->v.s##_bits < __sio(m)(smin)(int32_t) || \
              rhs->v.s##_bits > __sio(m)(smax)(int32_t)) \
            return 0; \
-          *cast = *sio_s32((int32_t)rhs->v.s##_bits); \
+          cast->v.s32 = (int32_t)rhs->v.s##_bits; \
           break; \
         case 64: \
           /* this is unreachable unless we add a larger possible size */ \
          if (rhs->v.s##_bits < __sio(m)(smin)(int64_t) || \
              rhs->v.s##_bits > __sio(m)(smax)(int64_t)) \
            return 0; \
-          *cast = *sio_s64((int64_t)rhs->v.s##_bits); \
+          cast->v.s64 = (int64_t)rhs->v.s##_bits; \
           break; \
         default: \
           return 0; \
@@ -755,23 +755,23 @@ struct sio_arg_t {
         case 8: \
           if (rhs->v.u##_bits > __sio(m)(umax)(uint8_t)) \
             return 0; \
-          *cast = *sio_u8((uint8_t)rhs->v.u##_bits); \
+          cast->v.u8 = (uint8_t)rhs->v.u##_bits; \
           break; \
         case 16: \
           if (rhs->v.u##_bits > __sio(m)(umax)(uint16_t)) \
             return 0; \
-          *cast = *sio_u16((uint16_t)rhs->v.u##_bits); \
+          cast->v.u16 = (uint16_t)rhs->v.u##_bits; \
           break; \
         case 32: \
           if (rhs->v.u##_bits > __sio(m)(umax)(uint32_t)) \
             return 0; \
-          *cast = *sio_u32((uint32_t)rhs->v.u##_bits); \
+          cast->v.u32 = (uint32_t)rhs->v.u##_bits; \
           break; \
         case 64: \
           /* this is unreachable unless we add a larger possible size */ \
           if (rhs->v.u##_bits > __sio(m)(umax)(uint64_t)) \
             return 0; \
-          *cast = *sio_u64((uint64_t)rhs->v.u##_bits); \
+          cast->v.u64 = (uint64_t)rhs->v.u##_bits; \
           break; \
         default: \
           return 0; \
@@ -786,22 +786,22 @@ struct sio_arg_t {
           /* SAFE: GCC warns on this before 4.3 (-Wno-type-limits) */ \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint8_t)) \
             return 0; \
-          *cast = *sio_s8((int8_t)rhs->v.u##_bits); \
+          cast->v.s8 = (int8_t)rhs->v.u##_bits; \
           break; \
         case 16: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint16_t)) \
             return 0; \
-          *cast = *sio_s16((int16_t)rhs->v.u##_bits); \
+          cast->v.s16 = (int16_t)rhs->v.u##_bits; \
           break; \
         case 32: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint32_t)) \
             return 0; \
-          *cast = *sio_s32((int32_t)rhs->v.u##_bits); \
+          cast->v.s32 = (int32_t)rhs->v.u##_bits; \
           break; \
         case 64: \
           if (rhs->v.u##_bits > __sio(m)(smax)(uint64_t)) \
             return 0; \
-          *cast = *sio_s64((int64_t)rhs->v.u##_bits); \
+          cast->v.s64 = (int64_t)rhs->v.u##_bits; \
           break; \
         default: \
           return 0; \
@@ -817,25 +817,25 @@ struct sio_arg_t {
           if (rhs->v.s##_bits < 0 || \
               rhs->v.s##_bits > __sio(m)(umax)(uint8_t)) \
             return 0; \
-          *cast = *sio_u8((uint8_t)rhs->v.s##_bits); \
+          cast->v.u8 = (uint8_t)rhs->v.s##_bits; \
           break; \
         case 16: \
           if (rhs->v.s##_bits < 0 || \
               rhs->v.s##_bits > __sio(m)(umax)(uint16_t)) \
             return 0; \
-          *cast = *sio_u16((uint16_t)rhs->v.s##_bits); \
+          cast->v.u16 = (uint16_t)rhs->v.s##_bits; \
           break; \
         case 32: \
           if (rhs->v.s##_bits < 0 || \
               rhs->v.s##_bits > __sio(m)(umax)(uint32_t)) \
             return 0; \
-          *cast = *sio_u32((uint32_t)rhs->v.s##_bits); \
+          cast->v.u32 = (uint32_t)rhs->v.s##_bits; \
           break; \
         case 64: \
           if (rhs->v.s##_bits < 0 || \
               rhs->v.s##_bits > __sio(m)(umax)(uint64_t)) \
             return 0; \
-          *cast = *sio_u64((uint64_t)rhs->v.s##_bits); \
+          cast->v.u64 = (uint64_t)rhs->v.s##_bits; \
           break; \
         default: \
           return 0; \
@@ -847,13 +847,16 @@ struct sio_arg_t {
 static inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
                                         const struct sio_arg_t *const lhs,
                                         const struct sio_arg_t *const rhs) {
+
+#ifndef SAFE_IOP_NO_SAFE_CAST
   if (cast == NULL) return 0;
+  cast->bits = lhs->bits;
+  cast->sign = lhs->sign;
   /* same bit count */
   if (lhs->bits == rhs->bits) { /* sign change */
     if (lhs->sign == rhs->sign) {
-      /* Same width and sign. we're good. */
-      /* XXX: can we do this cleanly without the copy? */
-      *cast = *rhs;
+      /* Copy over using the largest supported size */
+      cast->v.ull = rhs->v.ull;
       return 1;
     } else if (lhs->sign && !rhs->sign) {
       switch (rhs->bits) {
@@ -963,6 +966,7 @@ static inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
       }
     }
   } /* end cast down */
+#endif
   return 1;
 }
 #undef OPAQUE_SAFE_IOP_PREFIXI_MACRO_safe_cast_down_tos
