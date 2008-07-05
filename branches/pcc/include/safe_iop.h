@@ -143,7 +143,8 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
 #define OPAQUE_SAFE_IOP_PREFIX_MACRO_is_signed(__sA) \
   (OPAQUE_SAFE_IOP_PREFIX_MACRO_smin(typeof(__sA)) <= ((typeof(__sA))0))
 #define OPAQUE_SAFE_IOP_PREFIX_MACRO_type_enforce(__A, __B) \
-  ((__sio(m)(is_signed)(__A) == OPAQUE_SAFE_IOP_PREFIX_MACRO_is_signed(__B)) && \
+  ((__sio(m)(is_signed)(__A) == \
+    OPAQUE_SAFE_IOP_PREFIX_MACRO_is_signed(__B)) && \
    (sizeof(typeof(__A)) == sizeof(typeof(__B))))
 #endif
 
@@ -172,7 +173,9 @@ struct sio_arg_t {
      int32_t s32;
     uint64_t u64;
      int64_t s64;
-     /* holders only -- these will be accessed via the above holders if possible */
+     /* used for transparent portability. bit sizes used for accessing */
+     signed char    c;
+     unsigned char uc;
      signed long    l;
      unsigned long ul;
      signed long long    ll;
@@ -193,14 +196,26 @@ struct sio_arg_t {
 #define sio_u64(_a) (&(struct sio_arg_t){ .bits = 64, .sign = 0, .v.u64 = _a })
 
 /* Types with varying sizes which should be access by <s|u><bits> */
-#define sio_l(_a) (&(struct sio_arg_t){ .bits = sizeof(signed long)*CHAR_BIT, .sign = 1, .v.l = _a })
-#define sio_ul(_a) (&(struct sio_arg_t){ .bits = sizeof(unsigned long)*CHAR_BIT, .sign = 0, .v.ul = _a })
-#define sio_ll(_a) (&(struct sio_arg_t){ .bits = sizeof(signed long long)*CHAR_BIT, .sign = 1, .v.ll = _a })
-#define sio_ull(_a) (&(struct sio_arg_t){ .bits = sizeof(unsigned long long)*CHAR_BIT, .sign = 0, .v.ull = _a })
-#define sio_szt(_a) (&(struct sio_arg_t){ .bits = sizeof(size_t)*CHAR_BIT, .sign = 0, .v.szt = _a })
-#define sio_sszt(_a) (&(struct sio_arg_t){ .bits = sizeof(ssize_t)*CHAR_BIT, .sign = 1, .v.sszt = _a })
-#define sio_i(_a) (&(struct sio_arg_t){ .bits = sizeof(int)*CHAR_BIT, .sign = 1, .v.i = _a })
-#define sio_ui(_a) (&(struct sio_arg_t){ .bits = sizeof(unsigned int)*CHAR_BIT, .sign = 0, .v.ui = _a })
+#define sio_c(_a) (&(struct sio_arg_t){ \
+  .bits = sizeof(signed char)*CHAR_BIT, .sign = 1, .v.c = _a })
+#define sio_uc(_a) (&(struct sio_arg_t){ \
+  .bits = sizeof(unsigned char)*CHAR_BIT, .sign = 0, .v.ur = _a })
+#define sio_l(_a) (&(struct sio_arg_t){ \
+  .bits = sizeof(signed long)*CHAR_BIT, .sign = 1, .v.l = _a })
+#define sio_ul(_a) (&(struct sio_arg_t){ \
+  .bits = sizeof(unsigned long)*CHAR_BIT, .sign = 0, .v.ul = _a })
+#define sio_ll(_a) (&(struct sio_arg_t){ \
+  .bits = sizeof(signed long long)*CHAR_BIT, .sign = 1, .v.ll = _a })
+#define sio_ull(_a) (&(struct sio_arg_t){ \
+  .bits = sizeof(unsigned long long)*CHAR_BIT, .sign = 0, .v.ull = _a })
+#define sio_szt(_a) (&(struct sio_arg_t){ \
+  .bits = sizeof(size_t)*CHAR_BIT, .sign = 0, .v.szt = _a })
+#define sio_sszt(_a) (&(struct sio_arg_t){ \
+  .bits = sizeof(ssize_t)*CHAR_BIT, .sign = 1, .v.sszt = _a })
+#define sio_i(_a) (&(struct sio_arg_t){ \
+  .bits = sizeof(int)*CHAR_BIT, .sign = 1, .v.i = _a })
+#define sio_ui(_a) (&(struct sio_arg_t){ \
+  .bits = sizeof(unsigned int)*CHAR_BIT, .sign = 0, .v.ui = _a })
 
 #ifdef __GNUC__
  /* Slowly guard all GCC specific functionality with __GNUC__ tests
@@ -1200,7 +1215,8 @@ __sioi(m)(declare_safe_op)(shr)
     va_start(ap, args); \
     /* Grab the first argument so we can prep total */ \
     { \
-      const struct sio_arg_t *const lhs = va_arg(ap, const struct sio_arg_t *const); \
+      const struct sio_arg_t *const lhs = \
+        va_arg(ap, const struct sio_arg_t *const); \
       if (!lhs) return 0; \
  \
       total.bits = lhs->bits; \
@@ -1210,9 +1226,10 @@ __sioi(m)(declare_safe_op)(shr)
      } \
  \
     while (--args) { \
-      const struct sio_arg_t *const rhs = va_arg(ap, const struct sio_arg_t *const); \
+      const struct sio_arg_t *const rhs = \
+        va_arg(ap, const struct sio_arg_t *const); \
       if (!rhs) return 0; \
-      /* XXX: test to ensure passing the v.ull works for any type in the union */ \
+      /* XXX: test to ensure passing the v.ull works for any type */ \
       if (!safe_##_OP##x(&(total.v.ull), &total, rhs)) \
         return 0; \
     } \
