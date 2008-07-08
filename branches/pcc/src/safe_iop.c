@@ -756,23 +756,26 @@ int T_add_mixed() {
   return r;
 }
 
+#ifdef __GNUC__
 int T_add_increment() {
   int r=1;
   uint16_t a = 1, b = 2, c = 0, d[2]= {0};
   uint16_t *cur = d;
-  EXPECT_TRUE(safe_addx(cur++, sio_u16(a++), sio_u16(b)));
+  EXPECT_TRUE(safe_add(cur++, a++, b));
   EXPECT_EQUAL(cur, &d[1]);
   EXPECT_EQUAL(d[0], 3);
   EXPECT_EQUAL(a, 2);
   a = 1; b = 2; c = 1; cur=d;d[0] = 0;
-  //EXPECT_TRUE(safe_addv(cur++, 3, sio_u16(a++), sio_u16(b++), sio_u16(c)));
+#if 0 /* Not yet implemented */
+  EXPECT_TRUE(safe_addv(cur++, 3, sio_u16(a++), sio_u16(b++), sio_u16(c)));
   EXPECT_EQUAL(d[0], 4);
   EXPECT_EQUAL(cur, &d[1]);
   EXPECT_EQUAL(a, 2);
   EXPECT_EQUAL(b, 3);
   EXPECT_EQUAL(c, 1);
+#endif
   a = 1; b = 2; cur=d;d[0] = 0;
-  EXPECT_TRUE(safe_addx(cur++, sio_u16(a++), sio_u16(b++)));
+  EXPECT_TRUE(safe_add(cur++, a++, b++));
   EXPECT_EQUAL(d[0], 3);
   EXPECT_EQUAL(cur, &d[1]);
   EXPECT_EQUAL(a, 2);
@@ -780,6 +783,7 @@ int T_add_increment() {
 
   return r;
 }
+#endif
 
 
 
@@ -2813,7 +2817,10 @@ int main(int argc, char **argv) {
   tests++; if (T_add_sizet()) succ++; else fail++;
   tests++; if (T_add_mixed()) succ++; else fail++;
 
+/* Side effects cannot be prevented without GNU C extensions */
+#ifdef __GNUC__
   tests++; if (T_add_increment()) succ++; else fail++;
+#endif
 
   tests++; if (T_iopf_null()) succ++; else fail++;
   tests++; if (T_iopf_self()) succ++; else fail++;
