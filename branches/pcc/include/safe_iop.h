@@ -1122,8 +1122,9 @@ sio_inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
 
 /* Addreses div by zero and smin -1 */
 #define safe_sdiv(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0 && (((_a) != __sio(m)(smin)(_type)) || ((_b) != (_type)-1))) ? \
-    (((_ptr)) ? *((_type*)(_ptr)) = ((_a) / (_b)),1 : 1) \
+  (((_b) != 0 && (((_a) != __sio(m)(smin)(_a_type)) || ((_b) != (_a_type)-1))) \
+   ? \
+    (((_ptr)) ? *((_a_type*)(_ptr)) = ((_a) / (_b)),1 : 1) \
   : \
     0 \
   ) \
@@ -1132,12 +1133,13 @@ sio_inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
 /*** Same-type modulo macros ***/
 /* mod-by-zero is the only thing addressed */
 #define safe_umod(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0) ? (((_ptr)) ? *((_type*)(_ptr)) = ((_a) % (_b)),1 : 1) : 0)
+  (((_b) != 0) ? (((_ptr)) ? *((_a_type*)(_ptr)) = ((_a) % (_b)),1 : 1) : 0)
 
 /* Addreses mod by zero and smin -1 */
 #define safe_smod(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0 && (((_a) != __sio(m)(smin)(_type)) || ((_b) != (_type)-1))) ? \
-    (((_ptr)) ? *((_type*)(_ptr)) = ((_a) % (_b)),1 : 1) \
+  (((_b) != 0 && (((_a) != __sio(m)(smin)(_a_type)) || ((_b) != (_b_type)-1))) \
+   ? \
+    (((_ptr)) ? *((_a_type*)(_ptr)) = ((_a) % (_b)),1 : 1) \
   : \
     0 \
   ) \
@@ -1146,17 +1148,17 @@ sio_inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
 #define safe_sshl(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_a) < 0) || \
       ((_b) < 0) || \
-      ((_b) >= sizeof(_type)*CHAR_BIT) || \
-      ((_a) > (__sio(m)(smax)(_type) >> (_b)))) ? \
+      ((_b) >= sizeof(_a_type)*CHAR_BIT) || \
+      ((_a) > (__sio(m)(smax)(_a_type) >> (_b)))) ? \
     0 \
-  : (((_ptr)) ? *((_type*)(_ptr)) = (_a) << (_b),1 : 1))
+  : (((_ptr)) ? *((_a_type*)(_ptr)) = (_a) << (_b),1 : 1))
 
 #define safe_ushl(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  ((((_b) >= sizeof(_type)*CHAR_BIT) || \
-      ((_a) > (__sio(m)(umax)(_type) >> (_b)))) ? \
+  ((((_b) >= sizeof(_a_type)*CHAR_BIT) || \
+      ((_a) > (__sio(m)(umax)(_a_type) >> (_b)))) ? \
     0 \
   : \
-    (((_ptr)) ? *((_type*)(_ptr)) = (_a) << (_b),1 :  1))
+    (((_ptr)) ? *((_a_type*)(_ptr)) = (_a) << (_b),1 :  1))
 
 /*** Same-type right-shift macros ***/
 /* XXX: CERT doesnt recommend failing on -a, but it is undefined */
@@ -1171,8 +1173,8 @@ sio_inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
 
 /* this doesn't whine if 0 >> n. */
 #define safe_ushr(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) >= (sizeof(_type)*CHAR_BIT)) ? \
-    0 : (((_ptr)) ? *((_type*)(_ptr)) = ((_a) >> (_b)),1 : 1))
+  (((_b) >= (sizeof(_a_type)*CHAR_BIT)) ? \
+    0 : (((_ptr)) ? *((_a_type*)(_ptr)) = ((_a) >> (_b)),1 : 1))
 
 /*** Actual interface declarations ***/
 #define safe_inc(_type, _p) safe_addx(_p, sio_##_type(*_p), sio_##_type(1))
