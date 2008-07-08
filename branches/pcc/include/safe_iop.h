@@ -1078,7 +1078,7 @@ sio_inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
 
 /*** Same-type subtraction macros ***/
 #define safe_usub(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  ((_a) >= (_b) ?  *((_a_type*)(_ptr)) = ((_a) - (_b)),1 : 0 )
+  ((_a) >= (_b) ? ((_ptr) ? *((_a_type*)(_ptr)) = ((_a) - (_b)),1 : 1) : 0 )
 
 #define safe_ssub(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
   (!((_b) <= 0 && (_a) > (__sio(m)(smax)(_a_type) + (_b))) && \
@@ -1118,7 +1118,7 @@ sio_inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
 
 /* div-by-zero is the only thing addressed */
 #define safe_udiv(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0) ? (((_ptr)) ? *((_type*)(_ptr)) = ((_a) / (_b)),1 : 1) : 0)
+  (((_b) != 0) ? (((_ptr)) ? *((_a_type*)(_ptr)) = ((_a) / (_b)),1 : 1) : 0)
 
 /* Addreses div by zero and smin -1 */
 #define safe_sdiv(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
