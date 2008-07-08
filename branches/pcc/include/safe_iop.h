@@ -1100,18 +1100,18 @@ sio_inline _Bool __sio(f)(safe_cast)(struct sio_arg_t *cast,
 #define safe_smul(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_a) > 0) ?  /* a is positive */ \
     (((_b) > 0) ?  /* b and a are positive */ \
-       (((_a) > (__sio(m)(smax)(_type) / (_b))) ? 0 : 1) \
+       (((_a) > (__sio(m)(smax)(_a_type) / (_b))) ? 0 : 1) \
      : /* a positive, b non-positive */ \
-       (((_b) < (__sio(m)(smin)(_type) / (_a))) ? 0 : 1)) \
+       (((_b) < (__sio(m)(smin)(_a_type) / (_a))) ? 0 : 1)) \
    : /* a is non-positive */ \
     (((_b) > 0) ? /* a is non-positive, b is positive */ \
-      (((_a) < (__sio(m)(smin)(_type) / (_b))) ? 0 : 1) \
+      (((_a) < (__sio(m)(smin)(_a_type) / (_b))) ? 0 : 1) \
      : /* a and b are non-positive */ \
-      ((((_a) != 0) && ((_b) < (__sio(m)(smax)(_type) / (_a)))) ? 0 : 1) \
+      ((((_a) != 0) && ((_b) < (__sio(m)(smax)(_a_type) / (_a)))) ? 0 : 1) \
       ) \
   ) /* end if a and b are non-positive */ \
   ? \
-    ((_ptr) ? *((_type*)(_ptr)) = ((_a) * (_b)),1 : 1) \
+    ((_ptr) ? *((_a_type*)(_ptr)) = ((_a) * (_b)),1 : 1) \
   : 0)
 
 /*** Same-type division macros ***/
