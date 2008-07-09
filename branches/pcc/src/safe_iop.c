@@ -3553,7 +3553,6 @@ int T_div_sizet() {
 
 int T_div_mixed() {
   int r=1;
-  int8_t s8;
   uint8_t u8;
   int16_t a;
   uint64_t b;
