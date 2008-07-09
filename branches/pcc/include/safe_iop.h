@@ -8,7 +8,9 @@
  * - sio_* for internal, but exposed interface macros
  *
  * To Do:
- * - Clean up TODOs
+ * - change prefix to either all safe_ or sio_
+ * - add type markup to destination as well
+ * -- need to add a sio_NULL to catch a NULL listing
  * - Autogenerate test cases for all op-type-type combinations
  * - Test out with other compilers
  * - Consider ways to do safe casting with operator awareness to
