@@ -107,38 +107,8 @@ static int _safe_op_read_type(safe_type_t *type, const char **c) {
     return 0; \
 }
 
-#define _SAFE_IOP_OP_CASE_RHS(_LHS, _VA_LHS, _LHS_A, _FUNC) \
-  switch (rhs) { \
-    case SAFE_IOP_TYPE_U8: \
-      _SAFE_IOP_TYPE_CASE(_LHS, _VA_LHS, _LHS_A, unsigned char, unsigned int, u8, _FUNC); \
-      break; \
-    case SAFE_IOP_TYPE_S8: \
-      _SAFE_IOP_TYPE_CASE(_LHS, _VA_LHS, _LHS_A, signed char, signed int, s8, _FUNC); \
-      break; \
-    case SAFE_IOP_TYPE_U16: \
-      _SAFE_IOP_TYPE_CASE(_LHS, _VA_LHS, _LHS_A, uint16_t, unsigned int, u16, _FUNC); \
-      break; \
-    case SAFE_IOP_TYPE_S16: \
-      _SAFE_IOP_TYPE_CASE(_LHS, _VA_LHS, _LHS_A, int16_t, signed int, s16, _FUNC); \
-      break; \
-    case SAFE_IOP_TYPE_U32: \
-      _SAFE_IOP_TYPE_CASE(_LHS, _VA_LHS, _LHS_A, uint32_t, uint32_t, u32, _FUNC); \
-      break; \
-    case SAFE_IOP_TYPE_S32: \
-      _SAFE_IOP_TYPE_CASE(_LHS, _VA_LHS, _LHS_A, int32_t, int32_t, s32, _FUNC); \
-      break; \
-    case SAFE_IOP_TYPE_U64: \
-      _SAFE_IOP_TYPE_CASE(_LHS, _VA_LHS, _LHS_A, uint64_t, uint64_t, u64, _FUNC); \
-      break; \
-    case SAFE_IOP_TYPE_S64: \
-      _SAFE_IOP_TYPE_CASE(_LHS, _VA_LHS, _LHS_A, int64_t, int64_t, s64, _FUNC); \
-      break; \
-    default: \
-      return 0; \
-  }
 
-
-
+/* TODO: simplify! */
 int safe_iopf(void *result, const char *const fmt, ...) {
   va_list ap;
   int baseline = 0; /* indicates if the base value is present */
@@ -172,28 +142,309 @@ int safe_iopf(void *result, const char *const fmt, ...) {
           return 0;
         switch (lhs) {
           case SAFE_IOP_TYPE_U8:
-            _SAFE_IOP_OP_CASE_RHS(unsigned char, unsigned int, u8, safe_addx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint8_t, uint32_t, u8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int8_t, int32_t, s8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint16_t, uint32_t, u16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int16_t, int32_t, s16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint32_t, uint32_t, u32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int32_t, int32_t, s32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint64_t, uint64_t, u64, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int64_t, int64_t, s64, safe_addx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S8:
-            _SAFE_IOP_OP_CASE_RHS(signed char, signed int, s8, safe_addx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint8_t, uint32_t, u8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int8_t, int32_t, s8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint16_t, uint32_t, u16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int16_t, int32_t, s16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint32_t, uint32_t, u32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int32_t, int32_t, s32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint64_t, uint64_t, u64, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int64_t, int64_t, s64, safe_addx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U16:
-            _SAFE_IOP_OP_CASE_RHS(uint16_t, unsigned int, u16, safe_addx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint8_t, uint32_t, u8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int8_t, int32_t, s8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint16_t, uint32_t, u16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int16_t, int32_t, s16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint32_t, uint32_t, u32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int32_t, int32_t, s32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint64_t, uint64_t, u64, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int64_t, int64_t, s64, safe_addx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S16:
-            _SAFE_IOP_OP_CASE_RHS(int16_t, signed int, s16, safe_addx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint8_t, uint32_t, u8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int8_t, int32_t, s8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint16_t, uint32_t, u16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int16_t, int32_t, s16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint32_t, uint32_t, u32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int32_t, int32_t, s32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint64_t, uint64_t, u64, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int64_t, int64_t, s64, safe_addx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U32:
-            _SAFE_IOP_OP_CASE_RHS(uint32_t, uint32_t, u32, safe_addx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint8_t, uint32_t, u8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int8_t, int32_t, s8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint16_t, uint32_t, u16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int16_t, int32_t, s16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint32_t, uint32_t, u32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int32_t, int32_t, s32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint64_t, uint64_t, u64, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int64_t, int64_t, s64, safe_addx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S32:
-            _SAFE_IOP_OP_CASE_RHS(int32_t, int32_t, s32, safe_addx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint8_t, uint32_t, u8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int8_t, int32_t, s8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint16_t, uint32_t, u16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int16_t, int32_t, s16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint32_t, uint32_t, u32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int32_t, int32_t, s32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint64_t, uint64_t, u64, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int64_t, int64_t, s64, safe_addx);
+                break;
+              default:
+                return 0;
+            }
+
             break;
           case SAFE_IOP_TYPE_U64:
-            _SAFE_IOP_OP_CASE_RHS(uint64_t, uint64_t, u64, safe_addx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint8_t, uint32_t, u8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int8_t, int32_t, s8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint16_t, uint32_t, u16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int16_t, int32_t, s16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint32_t, uint32_t, u32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int32_t, int32_t, s32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint64_t, uint64_t, u64, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int64_t, int64_t, s64, safe_addx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S64:
-            _SAFE_IOP_OP_CASE_RHS(int64_t, int64_t, s64, safe_addx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint8_t, uint32_t, u8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int8_t, int32_t, s8, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint16_t, uint32_t, u16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int16_t, int32_t, s16, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint32_t, uint32_t, u32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int32_t, int32_t, s32, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint64_t, uint64_t, u64, safe_addx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int64_t, int64_t, s64, safe_addx);
+                break;
+              default:
+                return 0;
+            }
             break;
           default:
             return 0;
@@ -204,61 +455,622 @@ int safe_iopf(void *result, const char *const fmt, ...) {
           return 0;
         switch (lhs) {
           case SAFE_IOP_TYPE_U8:
-            _SAFE_IOP_OP_CASE_RHS(unsigned char, unsigned int, u8, safe_subx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint8_t, uint32_t, u8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int8_t, int32_t, s8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint16_t, uint32_t, u16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int16_t, int32_t, s16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint32_t, uint32_t, u32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int32_t, int32_t, s32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint64_t, uint64_t, u64, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int64_t, int64_t, s64, safe_subx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S8:
-            _SAFE_IOP_OP_CASE_RHS(signed char, signed int, s8, safe_subx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint8_t, uint32_t, u8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int8_t, int32_t, s8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint16_t, uint32_t, u16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int16_t, int32_t, s16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint32_t, uint32_t, u32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int32_t, int32_t, s32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint64_t, uint64_t, u64, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int64_t, int64_t, s64, safe_subx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U16:
-            _SAFE_IOP_OP_CASE_RHS(uint16_t, unsigned int, u16, safe_subx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint8_t, uint32_t, u8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int8_t, int32_t, s8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint16_t, uint32_t, u16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int16_t, int32_t, s16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint32_t, uint32_t, u32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int32_t, int32_t, s32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint64_t, uint64_t, u64, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int64_t, int64_t, s64, safe_subx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S16:
-            _SAFE_IOP_OP_CASE_RHS(int16_t, signed int, s16, safe_subx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint8_t, uint32_t, u8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int8_t, int32_t, s8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint16_t, uint32_t, u16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int16_t, int32_t, s16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint32_t, uint32_t, u32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int32_t, int32_t, s32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint64_t, uint64_t, u64, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int64_t, int64_t, s64, safe_subx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U32:
-            _SAFE_IOP_OP_CASE_RHS(uint32_t, uint32_t, u32, safe_subx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint8_t, uint32_t, u8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int8_t, int32_t, s8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint16_t, uint32_t, u16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int16_t, int32_t, s16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint32_t, uint32_t, u32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int32_t, int32_t, s32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint64_t, uint64_t, u64, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int64_t, int64_t, s64, safe_subx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S32:
-            _SAFE_IOP_OP_CASE_RHS(int32_t, int32_t, s32, safe_subx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint8_t, uint32_t, u8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int8_t, int32_t, s8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint16_t, uint32_t, u16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int16_t, int32_t, s16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint32_t, uint32_t, u32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int32_t, int32_t, s32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint64_t, uint64_t, u64, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int64_t, int64_t, s64, safe_subx);
+                break;
+              default:
+                return 0;
+            }
+
             break;
           case SAFE_IOP_TYPE_U64:
-            _SAFE_IOP_OP_CASE_RHS(uint64_t, uint64_t, u64, safe_subx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint8_t, uint32_t, u8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int8_t, int32_t, s8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint16_t, uint32_t, u16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int16_t, int32_t, s16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint32_t, uint32_t, u32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int32_t, int32_t, s32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint64_t, uint64_t, u64, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int64_t, int64_t, s64, safe_subx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S64:
-            _SAFE_IOP_OP_CASE_RHS(int64_t, int64_t, s64, safe_subx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint8_t, uint32_t, u8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int8_t, int32_t, s8, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint16_t, uint32_t, u16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int16_t, int32_t, s16, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint32_t, uint32_t, u32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int32_t, int32_t, s32, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint64_t, uint64_t, u64, safe_subx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int64_t, int64_t, s64, safe_subx);
+                break;
+              default:
+                return 0;
+            }
             break;
           default:
             return 0;
         }
-
         break;
       case '*': /* mul */
         if (!_safe_op_read_type(&rhs, &c))
           return 0;
         switch (lhs) {
           case SAFE_IOP_TYPE_U8:
-            _SAFE_IOP_OP_CASE_RHS(unsigned char, unsigned int, u8, safe_mulx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint8_t, uint32_t, u8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int8_t, int32_t, s8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint16_t, uint32_t, u16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int16_t, int32_t, s16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint32_t, uint32_t, u32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int32_t, int32_t, s32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint64_t, uint64_t, u64, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int64_t, int64_t, s64, safe_mulx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S8:
-            _SAFE_IOP_OP_CASE_RHS(signed char, signed int, s8, safe_mulx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint8_t, uint32_t, u8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int8_t, int32_t, s8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint16_t, uint32_t, u16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int16_t, int32_t, s16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint32_t, uint32_t, u32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int32_t, int32_t, s32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint64_t, uint64_t, u64, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int64_t, int64_t, s64, safe_mulx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U16:
-            _SAFE_IOP_OP_CASE_RHS(uint16_t, unsigned int, u16, safe_mulx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint8_t, uint32_t, u8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int8_t, int32_t, s8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint16_t, uint32_t, u16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int16_t, int32_t, s16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint32_t, uint32_t, u32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int32_t, int32_t, s32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint64_t, uint64_t, u64, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int64_t, int64_t, s64, safe_mulx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S16:
-            _SAFE_IOP_OP_CASE_RHS(int16_t, signed int, s16, safe_mulx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint8_t, uint32_t, u8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int8_t, int32_t, s8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint16_t, uint32_t, u16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int16_t, int32_t, s16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint32_t, uint32_t, u32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int32_t, int32_t, s32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint64_t, uint64_t, u64, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int64_t, int64_t, s64, safe_mulx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U32:
-            _SAFE_IOP_OP_CASE_RHS(uint32_t, uint32_t, u32, safe_mulx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint8_t, uint32_t, u8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int8_t, int32_t, s8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint16_t, uint32_t, u16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int16_t, int32_t, s16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint32_t, uint32_t, u32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int32_t, int32_t, s32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint64_t, uint64_t, u64, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int64_t, int64_t, s64, safe_mulx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S32:
-            _SAFE_IOP_OP_CASE_RHS(int32_t, int32_t, s32, safe_mulx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint8_t, uint32_t, u8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int8_t, int32_t, s8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint16_t, uint32_t, u16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int16_t, int32_t, s16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint32_t, uint32_t, u32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int32_t, int32_t, s32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint64_t, uint64_t, u64, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int64_t, int64_t, s64, safe_mulx);
+                break;
+              default:
+                return 0;
+            }
+
             break;
           case SAFE_IOP_TYPE_U64:
-            _SAFE_IOP_OP_CASE_RHS(uint64_t, uint64_t, u64, safe_mulx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint8_t, uint32_t, u8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int8_t, int32_t, s8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint16_t, uint32_t, u16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int16_t, int32_t, s16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint32_t, uint32_t, u32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int32_t, int32_t, s32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint64_t, uint64_t, u64, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int64_t, int64_t, s64, safe_mulx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S64:
-            _SAFE_IOP_OP_CASE_RHS(int64_t, int64_t, s64, safe_mulx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint8_t, uint32_t, u8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int8_t, int32_t, s8, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint16_t, uint32_t, u16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int16_t, int32_t, s16, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint32_t, uint32_t, u32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int32_t, int32_t, s32, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint64_t, uint64_t, u64, safe_mulx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int64_t, int64_t, s64, safe_mulx);
+                break;
+              default:
+                return 0;
+            }
             break;
           default:
             return 0;
@@ -269,28 +1081,309 @@ int safe_iopf(void *result, const char *const fmt, ...) {
           return 0;
         switch (lhs) {
           case SAFE_IOP_TYPE_U8:
-            _SAFE_IOP_OP_CASE_RHS(unsigned char, unsigned int, u8, safe_divx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint8_t, uint32_t, u8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int8_t, int32_t, s8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint16_t, uint32_t, u16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int16_t, int32_t, s16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint32_t, uint32_t, u32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int32_t, int32_t, s32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint64_t, uint64_t, u64, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int64_t, int64_t, s64, safe_divx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S8:
-            _SAFE_IOP_OP_CASE_RHS(signed char, signed int, s8, safe_divx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint8_t, uint32_t, u8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int8_t, int32_t, s8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint16_t, uint32_t, u16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int16_t, int32_t, s16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint32_t, uint32_t, u32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int32_t, int32_t, s32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint64_t, uint64_t, u64, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int64_t, int64_t, s64, safe_divx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U16:
-            _SAFE_IOP_OP_CASE_RHS(uint16_t, unsigned int, u16, safe_divx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint8_t, uint32_t, u8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int8_t, int32_t, s8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint16_t, uint32_t, u16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int16_t, int32_t, s16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint32_t, uint32_t, u32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int32_t, int32_t, s32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint64_t, uint64_t, u64, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int64_t, int64_t, s64, safe_divx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S16:
-            _SAFE_IOP_OP_CASE_RHS(int16_t, signed int, s16, safe_divx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint8_t, uint32_t, u8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int8_t, int32_t, s8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint16_t, uint32_t, u16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int16_t, int32_t, s16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint32_t, uint32_t, u32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int32_t, int32_t, s32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint64_t, uint64_t, u64, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int64_t, int64_t, s64, safe_divx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U32:
-            _SAFE_IOP_OP_CASE_RHS(uint32_t, uint32_t, u32, safe_divx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint8_t, uint32_t, u8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int8_t, int32_t, s8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint16_t, uint32_t, u16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int16_t, int32_t, s16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint32_t, uint32_t, u32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int32_t, int32_t, s32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint64_t, uint64_t, u64, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int64_t, int64_t, s64, safe_divx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S32:
-            _SAFE_IOP_OP_CASE_RHS(int32_t, int32_t, s32, safe_divx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint8_t, uint32_t, u8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int8_t, int32_t, s8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint16_t, uint32_t, u16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int16_t, int32_t, s16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint32_t, uint32_t, u32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int32_t, int32_t, s32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint64_t, uint64_t, u64, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int64_t, int64_t, s64, safe_divx);
+                break;
+              default:
+                return 0;
+            }
+
             break;
           case SAFE_IOP_TYPE_U64:
-            _SAFE_IOP_OP_CASE_RHS(uint64_t, uint64_t, u64, safe_divx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint8_t, uint32_t, u8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int8_t, int32_t, s8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint16_t, uint32_t, u16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int16_t, int32_t, s16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint32_t, uint32_t, u32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int32_t, int32_t, s32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint64_t, uint64_t, u64, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int64_t, int64_t, s64, safe_divx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S64:
-            _SAFE_IOP_OP_CASE_RHS(int64_t, int64_t, s64, safe_divx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint8_t, uint32_t, u8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int8_t, int32_t, s8, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint16_t, uint32_t, u16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int16_t, int32_t, s16, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint32_t, uint32_t, u32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int32_t, int32_t, s32, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint64_t, uint64_t, u64, safe_divx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int64_t, int64_t, s64, safe_divx);
+                break;
+              default:
+                return 0;
+            }
             break;
           default:
             return 0;
@@ -301,28 +1394,309 @@ int safe_iopf(void *result, const char *const fmt, ...) {
           return 0;
         switch (lhs) {
           case SAFE_IOP_TYPE_U8:
-            _SAFE_IOP_OP_CASE_RHS(unsigned char, unsigned int, u8, safe_modx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint8_t, uint32_t, u8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int8_t, int32_t, s8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint16_t, uint32_t, u16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int16_t, int32_t, s16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint32_t, uint32_t, u32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int32_t, int32_t, s32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint64_t, uint64_t, u64, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int64_t, int64_t, s64, safe_modx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S8:
-            _SAFE_IOP_OP_CASE_RHS(signed char, signed int, s8, safe_modx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint8_t, uint32_t, u8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int8_t, int32_t, s8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint16_t, uint32_t, u16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int16_t, int32_t, s16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint32_t, uint32_t, u32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int32_t, int32_t, s32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint64_t, uint64_t, u64, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int64_t, int64_t, s64, safe_modx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U16:
-            _SAFE_IOP_OP_CASE_RHS(uint16_t, unsigned int, u16, safe_modx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint8_t, uint32_t, u8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int8_t, int32_t, s8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint16_t, uint32_t, u16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int16_t, int32_t, s16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint32_t, uint32_t, u32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int32_t, int32_t, s32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint64_t, uint64_t, u64, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int64_t, int64_t, s64, safe_modx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S16:
-            _SAFE_IOP_OP_CASE_RHS(int16_t, signed int, s16, safe_modx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint8_t, uint32_t, u8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int8_t, int32_t, s8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint16_t, uint32_t, u16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int16_t, int32_t, s16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint32_t, uint32_t, u32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int32_t, int32_t, s32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint64_t, uint64_t, u64, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int64_t, int64_t, s64, safe_modx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U32:
-            _SAFE_IOP_OP_CASE_RHS(uint32_t, uint32_t, u32, safe_modx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint8_t, uint32_t, u8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int8_t, int32_t, s8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint16_t, uint32_t, u16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int16_t, int32_t, s16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint32_t, uint32_t, u32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int32_t, int32_t, s32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint64_t, uint64_t, u64, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int64_t, int64_t, s64, safe_modx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S32:
-            _SAFE_IOP_OP_CASE_RHS(int32_t, int32_t, s32, safe_modx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint8_t, uint32_t, u8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int8_t, int32_t, s8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint16_t, uint32_t, u16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int16_t, int32_t, s16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint32_t, uint32_t, u32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int32_t, int32_t, s32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint64_t, uint64_t, u64, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int64_t, int64_t, s64, safe_modx);
+                break;
+              default:
+                return 0;
+            }
+
             break;
           case SAFE_IOP_TYPE_U64:
-            _SAFE_IOP_OP_CASE_RHS(uint64_t, uint64_t, u64, safe_modx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint8_t, uint32_t, u8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int8_t, int32_t, s8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint16_t, uint32_t, u16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int16_t, int32_t, s16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint32_t, uint32_t, u32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int32_t, int32_t, s32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint64_t, uint64_t, u64, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int64_t, int64_t, s64, safe_modx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S64:
-            _SAFE_IOP_OP_CASE_RHS(int64_t, int64_t, s64, safe_modx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint8_t, uint32_t, u8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int8_t, int32_t, s8, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint16_t, uint32_t, u16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int16_t, int32_t, s16, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint32_t, uint32_t, u32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int32_t, int32_t, s32, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint64_t, uint64_t, u64, safe_modx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int64_t, int64_t, s64, safe_modx);
+                break;
+              default:
+                return 0;
+            }
             break;
           default:
             return 0;
@@ -335,32 +1709,313 @@ int safe_iopf(void *result, const char *const fmt, ...) {
             return 0;
         switch (lhs) {
           case SAFE_IOP_TYPE_U8:
-            _SAFE_IOP_OP_CASE_RHS(unsigned char, unsigned int, u8, safe_shlx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint8_t, uint32_t, u8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int8_t, int32_t, s8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint16_t, uint32_t, u16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int16_t, int32_t, s16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint32_t, uint32_t, u32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int32_t, int32_t, s32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint64_t, uint64_t, u64, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int64_t, int64_t, s64, safe_shlx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S8:
-            _SAFE_IOP_OP_CASE_RHS(signed char, signed int, s8, safe_shlx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint8_t, uint32_t, u8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int8_t, int32_t, s8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint16_t, uint32_t, u16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int16_t, int32_t, s16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint32_t, uint32_t, u32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int32_t, int32_t, s32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint64_t, uint64_t, u64, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int64_t, int64_t, s64, safe_shlx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U16:
-            _SAFE_IOP_OP_CASE_RHS(uint16_t, unsigned int, u16, safe_shlx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint8_t, uint32_t, u8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int8_t, int32_t, s8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint16_t, uint32_t, u16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int16_t, int32_t, s16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint32_t, uint32_t, u32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int32_t, int32_t, s32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint64_t, uint64_t, u64, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int64_t, int64_t, s64, safe_shlx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S16:
-            _SAFE_IOP_OP_CASE_RHS(int16_t, signed int, s16, safe_shlx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint8_t, uint32_t, u8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int8_t, int32_t, s8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint16_t, uint32_t, u16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int16_t, int32_t, s16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint32_t, uint32_t, u32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int32_t, int32_t, s32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint64_t, uint64_t, u64, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int64_t, int64_t, s64, safe_shlx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U32:
-            _SAFE_IOP_OP_CASE_RHS(uint32_t, uint32_t, u32, safe_shlx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint8_t, uint32_t, u8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int8_t, int32_t, s8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint16_t, uint32_t, u16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int16_t, int32_t, s16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint32_t, uint32_t, u32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int32_t, int32_t, s32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint64_t, uint64_t, u64, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int64_t, int64_t, s64, safe_shlx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S32:
-            _SAFE_IOP_OP_CASE_RHS(int32_t, int32_t, s32, safe_shlx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint8_t, uint32_t, u8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int8_t, int32_t, s8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint16_t, uint32_t, u16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int16_t, int32_t, s16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint32_t, uint32_t, u32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int32_t, int32_t, s32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint64_t, uint64_t, u64, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int64_t, int64_t, s64, safe_shlx);
+                break;
+              default:
+                return 0;
+            }
+
             break;
           case SAFE_IOP_TYPE_U64:
-            _SAFE_IOP_OP_CASE_RHS(uint64_t, uint64_t, u64, safe_shlx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint8_t, uint32_t, u8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int8_t, int32_t, s8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint16_t, uint32_t, u16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int16_t, int32_t, s16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint32_t, uint32_t, u32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int32_t, int32_t, s32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint64_t, uint64_t, u64, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int64_t, int64_t, s64, safe_shlx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S64:
-            _SAFE_IOP_OP_CASE_RHS(int64_t, int64_t, s64, safe_shlx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint8_t, uint32_t, u8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int8_t, int32_t, s8, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint16_t, uint32_t, u16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int16_t, int32_t, s16, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint32_t, uint32_t, u32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int32_t, int32_t, s32, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint64_t, uint64_t, u64, safe_shlx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int64_t, int64_t, s64, safe_shlx);
+                break;
+              default:
+                return 0;
+            }
             break;
           default:
             return 0;
-        }
+          }
         } else {
           /* unknown op */
           return 0;
@@ -373,28 +2028,309 @@ int safe_iopf(void *result, const char *const fmt, ...) {
             return 0;
         switch (lhs) {
           case SAFE_IOP_TYPE_U8:
-            _SAFE_IOP_OP_CASE_RHS(unsigned char, unsigned int, u8, safe_shrx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint8_t, uint32_t, u8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int8_t, int32_t, s8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint16_t, uint32_t, u16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int16_t, int32_t, s16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint32_t, uint32_t, u32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int32_t, int32_t, s32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    uint64_t, uint64_t, u64, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint8_t, uint32_t, u8,
+                                    int64_t, int64_t, s64, safe_shrx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S8:
-            _SAFE_IOP_OP_CASE_RHS(signed char, signed int, s8, safe_shrx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint8_t, uint32_t, u8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int8_t, int32_t, s8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint16_t, uint32_t, u16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int16_t, int32_t, s16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint32_t, uint32_t, u32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int32_t, int32_t, s32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    uint64_t, uint64_t, u64, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int8_t, int32_t, s8,
+                                    int64_t, int64_t, s64, safe_shrx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U16:
-            _SAFE_IOP_OP_CASE_RHS(uint16_t, unsigned int, u16, safe_shrx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint8_t, uint32_t, u8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int8_t, int32_t, s8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint16_t, uint32_t, u16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int16_t, int32_t, s16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint32_t, uint32_t, u32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int32_t, int32_t, s32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    uint64_t, uint64_t, u64, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint16_t, uint32_t, u16,
+                                    int64_t, int64_t, s64, safe_shrx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S16:
-            _SAFE_IOP_OP_CASE_RHS(int16_t, signed int, s16, safe_shrx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint8_t, uint32_t, u8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int8_t, int32_t, s8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint16_t, uint32_t, u16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int16_t, int32_t, s16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint32_t, uint32_t, u32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int32_t, int32_t, s32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    uint64_t, uint64_t, u64, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int16_t, int32_t, s16,
+                                    int64_t, int64_t, s64, safe_shrx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_U32:
-            _SAFE_IOP_OP_CASE_RHS(uint32_t, uint32_t, u32, safe_shrx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint8_t, uint32_t, u8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int8_t, int32_t, s8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint16_t, uint32_t, u16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int16_t, int32_t, s16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint32_t, uint32_t, u32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int32_t, int32_t, s32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    uint64_t, uint64_t, u64, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint32_t, uint32_t, u32,
+                                    int64_t, int64_t, s64, safe_shrx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S32:
-            _SAFE_IOP_OP_CASE_RHS(int32_t, int32_t, s32, safe_shrx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint8_t, uint32_t, u8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int8_t, int32_t, s8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint16_t, uint32_t, u16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int16_t, int32_t, s16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint32_t, uint32_t, u32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int32_t, int32_t, s32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    uint64_t, uint64_t, u64, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int32_t, int32_t, s32,
+                                    int64_t, int64_t, s64, safe_shrx);
+                break;
+              default:
+                return 0;
+            }
+
             break;
           case SAFE_IOP_TYPE_U64:
-            _SAFE_IOP_OP_CASE_RHS(uint64_t, uint64_t, u64, safe_shrx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint8_t, uint32_t, u8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int8_t, int32_t, s8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint16_t, uint32_t, u16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int16_t, int32_t, s16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint32_t, uint32_t, u32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int32_t, int32_t, s32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    uint64_t, uint64_t, u64, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(uint64_t, uint64_t, u64,
+                                    int64_t, int64_t, s64, safe_shrx);
+                break;
+              default:
+                return 0;
+            }
             break;
           case SAFE_IOP_TYPE_S64:
-            _SAFE_IOP_OP_CASE_RHS(int64_t, int64_t, s64, safe_shrx);
+            switch (rhs) {
+              case SAFE_IOP_TYPE_U8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint8_t, uint32_t, u8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S8:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int8_t, int32_t, s8, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint16_t, uint32_t, u16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S16:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int16_t, int32_t, s16, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint32_t, uint32_t, u32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S32:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int32_t, int32_t, s32, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_U64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    uint64_t, uint64_t, u64, safe_shrx);
+                break;
+              case SAFE_IOP_TYPE_S64:
+                _SAFE_IOP_TYPE_CASE(int64_t, int64_t, s64,
+                                    int64_t, int64_t, s64, safe_shrx);
+                break;
+              default:
+                return 0;
+            }
             break;
           default:
             return 0;
@@ -1611,6 +3547,18 @@ int T_div_sizet() {
   return r;
 }
 
+
+int T_div_mixed() {
+  int r=1;
+  int8_t s8;
+  uint8_t u8;
+  int16_t a;
+  uint64_t b;
+  a=8; b=8; EXPECT_TRUE(safe_divx(NULL, sio_s16(a), sio_u64(b)));
+  u8=8; b=8; EXPECT_TRUE(safe_divx(NULL, sio_u8(u8), sio_u64(b)));
+  return r;
+}
+
 /***** SHL *****/
 int T_shl_s8() {
   int r=1;
@@ -2531,8 +4479,11 @@ int T_iopf_mixed_s16u8u64() {
     EXPECT_EQUAL(a, -1);
   a=100, b=100, c=3; EXPECT_TRUE(safe_iopf(&a, "s16*u8*u64", a, b, c));
                      EXPECT_EQUAL(a, 30000);
+
+  a=8, c=8; EXPECT_TRUE(safe_iopf(&a, "s16/u64", a, c));
+            EXPECT_EQUAL(a, 1);
   a=132, b=4, c=8; EXPECT_TRUE(safe_iopf(&a, "s16-u8/u64", a, b, c));
-                     EXPECT_EQUAL(a, 16);
+                   EXPECT_EQUAL(a, 16);
   a=132, b=4, c=0; EXPECT_FALSE(safe_iopf(&a, "s16-u8/u64", a, b, c));
                    EXPECT_EQUAL(a, 132);
   a=1, b=4,c=2; EXPECT_TRUE(safe_iopf(&a, "s16<<u8+u64", a, b, c));
@@ -2557,7 +4508,7 @@ int T_iopf_mixed_s16u8u64() {
 int T_magic_constants() {
   int r=1;
   EXPECT_EQUAL(__sio(m)(smin)(int8_t), SCHAR_MIN);
-  EXPECT_EQUAL(__sio(m)(smax)(int8_t), (SCHAR_MAX));
+  EXPECT_EQUAL(__sio(m)(smax)(int8_t), (int8_t)(SCHAR_MAX));
   EXPECT_EQUAL(__sio(m)(umax)(uint8_t), UCHAR_MAX);
 
   EXPECT_EQUAL(__sio(m)(smin)(int16_t), SHRT_MIN);
@@ -2754,6 +4705,7 @@ int main(int argc, char **argv) {
   tests++; if (T_div_ulong()) succ++; else fail++;
   tests++; if (T_div_ulonglong()) succ++; else fail++;
   tests++; if (T_div_sizet()) succ++; else fail++;
+  tests++; if (T_div_mixed()) succ++; else fail++;
 
   tests++; if (T_mod_s8())  succ++; else fail++;
   tests++; if (T_mod_s16()) succ++; else fail++;

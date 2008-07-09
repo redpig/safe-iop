@@ -135,15 +135,16 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
 
 
 
-/* A recursive macro which safely multiplies the given type together.
- * _ptr may be NULL.
- * mixed types or mixed sizes will unconditionally return 0;
+/* XXX: this probably relies on undefined behavior...
+ *      luckily it will be caught by magic_constant test
  */
-#define OPAQUE_SAFE_IOP_PREFIX_MACRO_smax(_type) \
-  (_type)(~(_type)((_type) 1 << (_type)((sizeof(_type) * CHAR_BIT) - 1)))
 #define OPAQUE_SAFE_IOP_PREFIX_MACRO_smin(_type) \
-  (_type)(-(OPAQUE_SAFE_IOP_PREFIX_MACRO_smax(_type)) - 1)
-#define OPAQUE_SAFE_IOP_PREFIX_MACRO_umax(_type) ((_type)(~((_type) 0)))
+  (_type)((_type)(~0)<<(sizeof(_type)*CHAR_BIT-1))
+
+#define OPAQUE_SAFE_IOP_PREFIX_MACRO_smax(_type) \
+   (_type)(-(OPAQUE_SAFE_IOP_PREFIX_MACRO_smin(_type)+1))
+
+#define OPAQUE_SAFE_IOP_PREFIX_MACRO_umax(_type) ((_type)~0)
 
 
 #ifdef __GNUC__
@@ -151,7 +152,7 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
   (OPAQUE_SAFE_IOP_PREFIX_MACRO_smin(typeof(__sA)) <= ((typeof(__sA))0))
 #define OPAQUE_SAFE_IOP_PREFIX_MACRO_type_enforce(__A, __B) \
   ((__sio(m)(is_signed)(__A) == \
-    OPAQUE_SAFE_IOP_PREFIX_MACRO_is_signed(__B)) && \
+    __sio(m)(is_signed)(__B)) && \
    (sizeof(typeof(__A)) == sizeof(typeof(__B))))
 #endif
 
@@ -614,8 +615,8 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
       ((_a_type)(__sio(m)(umax)(_a_type) - \
        (_a))) ? 1 : 0)) \
   ? \
-    ((_ptr) ? \
-      *((_a_type *)(_ptr)) = ((_a) + (_b)), 1 : 1) \
+    ((_ptr) != NULL ? \
+      *((_a_type *)(_ptr)) = ((_a) + (_a_type)(_b)), 1 : 1) \
   : 0)
 
 
@@ -623,23 +624,23 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
 /* ( (tests) ? (ptr ? ptr = ...),1 : 0; ) */
 #define safe_sadd(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ( /* Do tests here */ \
-    ((((_b) > (_a_type)0) && \
+    ((((_a_type)(_b) > (_a_type)0) && \
        ((_a) > (_a_type)0)) \
      ? /*>0*/  \
        ((_a) > \
          (_a_type)(__sio(m)(smax)(_a_type) - \
-         (_b)) ? 0 : 1) \
+         (_a_type)(_b)) ? 0 : 1) \
      : \
        /* <0 */ \
-       ((!((_b) > (_a_type)0) && \
+       ((!((_a_type)(_b) > (_a_type)0) && \
                 !((_a) > (_a_type)0)) ? \
          (((_a) < \
            (_a_type)(__sio(m)(smin)(_a_type) - \
-                             (_b))) ? 0 : 1) : 1) \
+                             (_a_type)(_b))) ? 0 : 1) : 1) \
      ) \
    ? /* Now assign if needed */ \
-     ((_ptr) ? \
-       *((_a_type *)(_ptr)) = ((_a) + (_b)),\
+     ((_ptr) != NULL ? \
+       *((_a_type *)(_ptr)) = ((_a) + (_a_type)(_b)),\
        1 \
        : \
        1 \
@@ -650,53 +651,59 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
 
 /*** Same-type subtraction macros ***/
 #define safe_usub(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  ((_a) >= (_b) ? ((_ptr) ? *((_a_type*)(_ptr)) = ((_a) - (_b)),1 : 1) : 0 )
+  ((_a) >= (_a_type)(_b) ? ((_ptr) != NULL ? \
+    *((_a_type*)(_ptr)) = ((_a) - (_b)),1 : 1) : 0 )
 
 #define safe_ssub(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
-  (!((_b) <= 0 && (_a) > (__sio(m)(smax)(_a_type) + (_b))) && \
-   !((_b) > 0 && (_a) < (__sio(m)(smin)(_a_type) + (_b)))) \
+  (!((_b) <= 0 && (_a) > (__sio(m)(smax)(_a_type) + (_a_type)(_b))) && \
+   !((_b) > 0 && (_a) < (__sio(m)(smin)(_a_type) + (_a_type)(_b)))) \
   ? \
-    ((_ptr) ? *((_a_type*)(_ptr)) = ((_a) - (_b)), 1 : 1) \
+    ((_ptr) != NULL ? *((_a_type*)(_ptr)) = ((_a) - (_a_type)(_b)), 1 : 1) \
   : \
     0)
 
 
 /*** Same-type multiplication macros ***/
 #define safe_umul(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
-  (!(_b) || (_a) <= (__sio(m)(umax)(_a_type) / (_b))) \
+  (!(_b) || (_a) <= (__sio(m)(umax)(_a_type) / (_a_type)(_b))) \
   ? \
-    (((_ptr)) ? *((_a_type*)(_ptr)) = (_a) * (_b),1 : 1) \
+    (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = (_a) * (_a_type)(_b),1 : 1) \
   : \
     0)
 
 #define safe_smul(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_a) > 0) ?  /* a is positive */ \
     (((_b) > 0) ?  /* b and a are positive */ \
-       (((_a) > (__sio(m)(smax)(_a_type) / (_b))) ? 0 : 1) \
+       (((_a) > (__sio(m)(smax)(_a_type) / ((_a_type)(_b)))) ? 0 : 1) \
      : /* a positive, b non-positive */ \
-       (((_b) < (__sio(m)(smin)(_a_type) / (_a))) ? 0 : 1)) \
+       (((_a_type)(_b) < (__sio(m)(smin)(_a_type) / (_a))) ? 0 : 1)) \
    : /* a is non-positive */ \
     (((_b) > 0) ? /* a is non-positive, b is positive */ \
-      (((_a) < (__sio(m)(smin)(_a_type) / (_b))) ? 0 : 1) \
+      (((_a) < (__sio(m)(smin)(_a_type) / ((_a_type)(_b)))) ? 0 : 1) \
      : /* a and b are non-positive */ \
-      ((((_a) != 0) && ((_b) < (__sio(m)(smax)(_a_type) / (_a)))) ? 0 : 1) \
+      ((((_a) != 0) && (((_a_type)(_b)) < (__sio(m)(smax)(_a_type) / (_a)))) ? \
+         0 : 1) \
       ) \
   ) /* end if a and b are non-positive */ \
   ? \
-    ((_ptr) ? *((_a_type*)(_ptr)) = ((_a) * (_b)),1 : 1) \
+    ((_ptr) ? *((_a_type*)(_ptr)) = ((_a) * ((_a_type)(_b))),1 : 1) \
   : 0)
 
 /*** Same-type division macros ***/
 
 /* div-by-zero is the only thing addressed */
 #define safe_udiv(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0) ? (((_ptr)) ? *((_a_type*)(_ptr)) = ((_a) / (_b)),1 : 1) : 0)
+  (((_b) != 0) ? (((_ptr) != NULL) ? \
+                  *((_a_type*)(_ptr)) = ((_a) / (_a_type)(_b)),1 : \
+                   1) \
+              : 0)
 
 /* Addreses div by zero and smin -1 */
 #define safe_sdiv(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0 && (((_a) != __sio(m)(smin)(_a_type)) || ((_b) != (_a_type)-1))) \
+  (((_b) != 0 && (((_a) != __sio(m)(smin)(_a_type)) || \
+    ((_a_type)(_b) != (_a_type)-1))) \
    ? \
-    (((_ptr)) ? *((_a_type*)(_ptr)) = ((_a) / (_b)),1 : 1) \
+    (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = ((_a) / (_a_type)(_b)),1 : 1) \
   : \
     0 \
   ) \
@@ -705,13 +712,15 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
 /*** Same-type modulo macros ***/
 /* mod-by-zero is the only thing addressed */
 #define safe_umod(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0) ? (((_ptr)) ? *((_a_type*)(_ptr)) = ((_a) % (_b)),1 : 1) : 0)
+  (((_b) != 0) ? (((_ptr) != NULL) ? \
+    *((_a_type*)(_ptr)) = ((_a) % (_a_type)(_b)),1 : 1) : 0)
 
 /* Addreses mod by zero and smin -1 */
 #define safe_smod(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0 && (((_a) != __sio(m)(smin)(_a_type)) || ((_b) != (_a_type)-1))) \
+  (((_b) != 0 && (((_a) != __sio(m)(smin)(_a_type)) || \
+    ((_a_type)(_b) != (_a_type)-1))) \
    ? \
-    (((_ptr)) ? *((_a_type*)(_ptr)) = ((_a) % (_b)),1 : 1) \
+    (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = ((_a) % (_a_type)(_b)),1 : 1) \
   : \
     0 \
   ) \
@@ -719,34 +728,35 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
 /*** Same-type left-shift macros ***/
 #define safe_sshl(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_a) < 0) || \
-      ((_b) < 0) || \
-      ((_b) >= sizeof(_a_type)*CHAR_BIT) || \
-      ((_a) > (__sio(m)(smax)(_a_type) >> (_b)))) ? \
+      ((_a_type)(_b) < 0) || \
+      ((_a_type)(_b) >= sizeof(_a_type)*CHAR_BIT) || \
+      ((_a) > (__sio(m)(smax)(_a_type) >> (_a_type)(_b)))) ? \
     0 \
-  : (((_ptr)) ? *((_a_type*)(_ptr)) = (_a) << (_b),1 : 1))
+  : (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = (_a) << (_a_type)(_b),1 : 1))
 
 #define safe_ushl(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  ((((_b) >= sizeof(_a_type)*CHAR_BIT) || \
-      ((_a) > (__sio(m)(umax)(_a_type) >> (_b)))) ? \
+  ((((_a_type)(_b) >= sizeof(_a_type)*CHAR_BIT) || \
+      ((_a) > (__sio(m)(umax)(_a_type) >> (_a_type)(_b)))) ? \
     0 \
   : \
-    (((_ptr)) ? *((_a_type*)(_ptr)) = (_a) << (_b),1 :  1))
+    (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = (_a) << (_a_type)(_b),1 :  1))
 
 /*** Same-type right-shift macros ***/
 /* XXX: CERT doesnt recommend failing on -a, but it is undefined */
 #define safe_sshr(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((!((_a) > 0 || (_a) == 0) || \
-      !((_b) > 0 || (_b) == 0) || \
-      ((_b) >= sizeof(_a_type)*CHAR_BIT)) ? \
+      !((_a_type)(_b) > 0 || (_a_type)(_b) == 0) || \
+      ((_a_type)(_b) >= sizeof(_a_type)*CHAR_BIT)) ? \
     0 \
   : \
-    (((_ptr)) ? *((_a_type*)(_ptr)) = (_a) >> (_b),1 : 1) \
+    (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = (_a) >> (_a_type)(_b),1 : 1) \
   )
 
 /* this doesn't whine if 0 >> n. */
 #define safe_ushr(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) >= (sizeof(_a_type)*CHAR_BIT)) ? \
-    0 : (((_ptr)) ? *((_a_type*)(_ptr)) = ((_a) >> (_b)),1 : 1))
+  (((_a_type)(_b) >= (sizeof(_a_type)*CHAR_BIT)) ? \
+    0 : (((_ptr) != NULL) ? \
+         *((_a_type*)(_ptr)) = ((_a) >> (_a_type)(_b)),1 : 1))
 
 /*** Actual interface declarations ***/
 #define safe_inc(_type, _p) safe_addx(_p, sio_##_type(*_p), sio_##_type(1))
@@ -798,7 +808,19 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
             ((_a_sign && !_b_sign) \
             ? \
               /* this is true by default */ \
-              ((__sio(m)(smax)(_a_type) >= __sio(m)(umax)(_b_type)) ? 1 : 0) \
+              ((__sio(m)(smax)(_a_type) >= __sio(m)(umax)(_b_type)) \
+              ? \
+                 1 \
+              : \
+                /* This will safely truncate given that smax(a) <= umax(b) */ \
+                (((_b) < (_b_type)__sio(m)(smax)(_a_type) || \
+                 (_b) == (_b_type)__sio(m)(smax)(_a_type)) \
+                ? \
+                  1 \
+                : \
+                  0 \
+                ) \
+              ) \
             : \
               0 \
             ) \
@@ -806,67 +828,60 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
         ) \
       ) \
     : \
-      /* This will safely truncate given that smax(a) <= umax(b) */ \
-      (((_b) < (_b_type)__sio(m)(smax)(_a_type) || \
-          (_b) == (_b_type)__sio(m)(smax)(_a_type)) \
+      ((sizeof(_a_type) < sizeof(_b_type)) \
       ? \
-        1 \
-      : \
-        ((sizeof(_a_type) < sizeof(_b_type)) \
+        /* cast down (loss of precision) */ \
+        ((!_a_sign && !_b_sign) \
         ? \
-          /* cast down (loss of precision) */ \
-          ((!_a_sign && !_b_sign) \
+          (((_b) == (_b_type)__sio(m)(umax)(_a_type)) \
           ? \
-            (((_b) == (_b_type)__sio(m)(umax)(_a_type)) \
+            1 \
+          : \
+            (((_b) < (_b_type)__sio(m)(umax)(_a_type)) ? 1 : 0) \
+          ) \
+        : \
+          ((_a_sign && _b_sign) \
+          ? \
+            ((((_b) > (_b_type)__sio(m)(smin)(_a_type) || \
+               (_b) == (_b_type)__sio(m)(smin)(_a_type)) && \
+              ((_b) < (_b_type)__sio(m)(smax)(_a_type) || \
+               (_b) == (_b_type)__sio(m)(smax)(_a_type))) \
             ? \
               1 \
             : \
-              (((_b) < (_b_type)__sio(m)(umax)(_a_type)) ? 1 : 0) \
+              0 \
             ) \
           : \
-            ((_a_sign && _b_sign) \
+            ((!_a_sign && _b_sign) \
             ? \
-              ((((_b) > (_b_type)__sio(m)(smin)(_a_type) || \
-                 (_b) == (_b_type)__sio(m)(smin)(_a_type)) && \
-                ((_b) < (_b_type)__sio(m)(smax)(_a_type) || \
-                 (_b) == (_b_type)__sio(m)(smax)(_a_type))) \
+              /* this should safely extend */ \
+              ((((_b) > (_b_type)0 || (_b) == (_b_type)0) && \
+               (((_a_type)(_b) < __sio(m)(umax)(_a_type)) || \
+                ((_a_type)(_b) == __sio(m)(umax)(_a_type)))) \
               ? \
                 1 \
               : \
                 0 \
               ) \
             : \
-              ((!_a_sign && _b_sign) \
+              ((_a_sign && !_b_sign) \
               ? \
                 /* this should safely extend */ \
-                ((((_b) > (_b_type)0 || (_b) == (_b_type)0) && \
-                 (((_b) < (_b_type)__sio(m)(umax)(_a_type)) || \
-                  ((_b) == (_b_type)__sio(m)(umax)(_a_type)))) \
+                (((_b) < (_b_type)__sio(m)(smax)(_a_type) || \
+                  (_b) == (_b_type)__sio(m)(smax)(_a_type)) \
                 ? \
                   1 \
                 : \
                   0 \
                 ) \
               : \
-                ((_a_sign && !_b_sign) \
-                ? \
-                  /* this should safely extend */ \
-                  (((_b) < (_b_type)__sio(m)(smax)(_a_type) || \
-                    (_b) == (_b_type)__sio(m)(smax)(_a_type)) \
-                  ? \
-                    1 \
-                  : \
-                    0 \
-                  ) \
-                : \
-                  0 \
-                ) \
+                0 \
               ) \
             ) \
           ) \
-        : \
-          0 \
         ) \
+      : \
+        0 \
       ) \
     ) \
   )
@@ -908,6 +923,7 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
                         sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
     : 0)
 
+/* Testing switching the type in the args after a safe cast */
 #define safe_divx(_ptr, _a, _b) \
   (sio_safe_cast(sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
                  sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
