@@ -3,7 +3,6 @@
  * See safe_iop.h for more info.
  *
  * Copyright (c) 2007,2008 Will Drewry <redpig@dataspill.org>
- * Some portions contributed by Google Inc., 2008.
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,8 +23,9 @@
 
 #include <safe_iop.h>
 
-/* Read off the type if the first value matches a type prefix
- * and consume characters if successful.
+/* _safe_op_read_type
+ * This is a static helper function for safe_iopf which reads off
+ * the type from the format string and advances the given pointer.
  */
 static int _safe_op_read_type(safe_type_t *type, const char **c) {
   if (type == NULL) {
@@ -87,11 +87,8 @@ static int _safe_op_read_type(safe_type_t *type, const char **c) {
   return 1;
 }
 
-/* XXX: Due to stdarg's implementation, all values smaller than int are cast
- *      up to it. (I can only assume for easy alignment.)
- *      Need to cross-check to see if unsafe casts can occur.
- *      ADD TESTS!
- */
+/* Repeated code for va_args is here.  More code is not factored out this
+ * way due to the C99 4096 byte limit for expanded macro text.  */
 #define _SAFE_IOP_TYPE_CASE(_lhs, _va_lhs, _lhs_a, _rhs, _va_rhs, _rhs_a, _func) { \
   _rhs a; \
   _lhs value, *_h = (_lhs *) holder; \
@@ -108,16 +105,14 @@ static int _safe_op_read_type(safe_type_t *type, const char **c) {
 }
 
 
-/* TODO: simplify! */
+/* See header file for details. Or the README :) */
 int safe_iopf(void *result, const char *const fmt, ...) {
   va_list ap;
   int baseline = 0; /* indicates if the base value is present */
 
   const char *c = NULL;
-  /* Holds the interim values and allows for result to be NULL.
-   * Width is expressed in CHAR_BITs using sizeof.
-   */
-  unsigned char holder[SAFE_IOPF_MAX_WIDTH] = {0};
+  /* Holds the interim values and allows for result to be NULL. */
+  unsigned char holder[sizeof(intmax_t)] = {0};
   safe_type_t lhs = SAFE_IOP_TYPE_DEFAULT, rhs = SAFE_IOP_TYPE_DEFAULT;
 
   va_start(ap, fmt);
@@ -2467,8 +2462,8 @@ int T_add_s8() {
   /* TODO: should this just test safe_sadd and safe_uadd? */
   a=SCHAR_MIN; b=-1; EXPECT_FALSE(safe_addx(NULL, sio_s8(a), sio_s8(b)));
   a=SCHAR_MAX; b=1; EXPECT_FALSE(safe_addx(NULL, sio_s8(a), sio_s8(b)));
-  a=SCHAR_MAX; EXPECT_FALSE(safe_inc(s8, &a));
-  a=0; EXPECT_TRUE(safe_inc(s8, &a)); EXPECT_TRUE(a==1);
+  a=SCHAR_MAX; EXPECT_FALSE(safe_incx(sio_s8(a)));
+  a=0; EXPECT_TRUE(safe_incx(sio_s8(a))); EXPECT_TRUE(a==1);
   a=10; b=11; EXPECT_TRUE(safe_addx(NULL, sio_s8(a), sio_s8(b)));
   a=-10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_s8(a), sio_s8(b)));
   a=10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_s8(a), sio_s8(b)));
@@ -2484,7 +2479,7 @@ int T_add_s16() {
   int16_t a, b;
   a=SHRT_MIN; b=-1; EXPECT_FALSE(safe_addx(NULL, sio_s16(a), sio_s16(b)));
   a=SHRT_MAX; b=1; EXPECT_FALSE(safe_addx(NULL, sio_s16(a), sio_s16(b)));
-  a=SHRT_MAX; EXPECT_FALSE(safe_inc(s16, &a));
+  a=SHRT_MAX; EXPECT_FALSE(safe_incx(sio_s16(a)));
   a=10; b=11; EXPECT_TRUE(safe_addx(NULL, sio_s16(a), sio_s16(b)));
   a=-10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_s16(a), sio_s16(b)));
   a=10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_s16(a), sio_s16(b)));
@@ -2500,7 +2495,7 @@ int T_add_s32() {
   int32_t a, b;
   a=INT_MIN; b=-1; EXPECT_FALSE(safe_addx(NULL, sio_s32(a), sio_s32(b)));
   a=INT_MAX; b=1; EXPECT_FALSE(safe_addx(NULL, sio_s32(a), sio_s32(b)));
-  a=INT_MAX; EXPECT_FALSE(safe_inc(s32, &a));
+  a=INT_MAX; EXPECT_FALSE(safe_incx(sio_s32(a)));
   a=10; b=11; EXPECT_TRUE(safe_addx(NULL, sio_s32(a), sio_s32(b)));
   a=-10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_s32(a), sio_s32(b)));
   a=10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_s32(a), sio_s32(b)));
@@ -2516,7 +2511,7 @@ int T_add_s64() {
   int64_t a, b;
   a=SAFE_INT64_MIN; b=-1; EXPECT_FALSE(safe_addx(NULL, sio_s64(a), sio_s64(b)));
   a=SAFE_INT64_MAX; b=1; EXPECT_FALSE(safe_addx(NULL, sio_s64(a), sio_s64(b)));
-  a=SAFE_INT64_MAX; EXPECT_FALSE(safe_inc(s64, &a));
+  a=SAFE_INT64_MAX; EXPECT_FALSE(safe_incx(sio_s64(a)));
   a=10; b=11; EXPECT_TRUE(safe_addx(NULL, sio_s64(a), sio_s64(b)));
   a=-10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_s64(a), sio_s64(b)));
   a=10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_s64(a), sio_s64(b)));
@@ -2532,7 +2527,7 @@ int T_add_long() {
   long a, b;
   a=LONG_MIN; b=-1; EXPECT_FALSE(safe_addx(NULL, sio_sl(a), sio_sl(b)));
   a=LONG_MAX; b=1; EXPECT_FALSE(safe_addx(NULL, sio_sl(a), sio_sl(b)));
-  a=LONG_MAX; EXPECT_FALSE(safe_inc(sl, &a));
+  a=LONG_MAX; EXPECT_FALSE(safe_incx(sio_sl(a)));
   a=10; b=11; EXPECT_TRUE(safe_addx(NULL, sio_sl(a), sio_sl(b)));
   a=-10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_sl(a), sio_sl(b)));
   a=10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_sl(a), sio_sl(b)));
@@ -2547,7 +2542,7 @@ int T_add_longlong() {
   long long a, b;
   a=LLONG_MIN; b=-1; EXPECT_FALSE(safe_addx(NULL, sio_sll(a), sio_sll(b)));
   a=LLONG_MAX; b=1; EXPECT_FALSE(safe_addx(NULL, sio_sll(a), sio_sll(b)));
-  a=LLONG_MAX; EXPECT_FALSE(safe_inc(sll, &a));
+  a=LLONG_MAX; EXPECT_FALSE(safe_incx(sio_sll(a)));
   a=10; b=11; EXPECT_TRUE(safe_addx(NULL, sio_sll(a), sio_sll(b)));
   a=-10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_sll(a), sio_sll(b)));
   a=10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_sll(a), sio_sll(b)));
@@ -2562,7 +2557,7 @@ int T_add_ssizet() {
   ssize_t a, b;
   a=SSIZE_MIN; b=-1; EXPECT_FALSE(safe_addx(NULL, sio_sszt(a), sio_sszt(b)));
   a=SSIZE_MAX; b=1; EXPECT_FALSE(safe_addx(NULL, sio_sszt(a), sio_sszt(b)));
-  a=SSIZE_MAX; EXPECT_FALSE(safe_inc(sszt, &a));
+  a=SSIZE_MAX; EXPECT_FALSE(safe_incx(sio_sszt(a)));
   a=10; b=11; EXPECT_TRUE(safe_addx(NULL, sio_sszt(a), sio_sszt(b)));
   a=-10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_sszt(a), sio_sszt(b)));
   a=10; b=-11; EXPECT_TRUE(safe_addx(NULL, sio_sszt(a), sio_sszt(b)));
@@ -2577,7 +2572,7 @@ int T_add_u8() {
   int r=1;
   uint8_t a, b;
   a=1; b=UCHAR_MAX; EXPECT_FALSE(safe_addx(NULL, sio_u8(a), sio_u8(b)));
-  a=UCHAR_MAX; EXPECT_FALSE(safe_inc(u8, &a));
+  a=UCHAR_MAX; EXPECT_FALSE(safe_incx(sio_u8(a)));
   a=UCHAR_MAX/2; b=a+2; EXPECT_FALSE(safe_addx(NULL, sio_u8(a), sio_u8(b)));
   a=UCHAR_MAX/2; b=a; EXPECT_TRUE(safe_addx(NULL, sio_u8(a), sio_u8(b)));
   a=UCHAR_MAX/2; b=a+1; EXPECT_TRUE(safe_addx(NULL, sio_u8(a), sio_u8(b)));
@@ -2590,7 +2585,7 @@ int T_add_u16() {
   int r=1;
   uint16_t a, b;
   a=1; b=USHRT_MAX; EXPECT_FALSE(safe_addx(NULL, sio_u16(a), sio_u16(b)));
-  a=USHRT_MAX; EXPECT_FALSE(safe_inc(u16, &a));
+  a=USHRT_MAX; EXPECT_FALSE(safe_incx(sio_u16(a)));
   a=USHRT_MAX/2; b=a+2; EXPECT_FALSE(safe_addx(NULL, sio_u16(a), sio_u16(b)));
   a=USHRT_MAX/2; b=a; EXPECT_TRUE(safe_addx(NULL, sio_u16(a), sio_u16(b)));
   a=USHRT_MAX/2; b=a+1; EXPECT_TRUE(safe_addx(NULL, sio_u16(a), sio_u16(b)));
@@ -2603,7 +2598,7 @@ int T_add_u32() {
   int r=1;
   uint32_t a, b;
   a=1; b=UINT_MAX; EXPECT_FALSE(safe_addx(NULL, sio_u32(a), sio_u32(b)));
-  a=UINT_MAX; EXPECT_FALSE(safe_inc(u32, &a));
+  a=UINT_MAX; EXPECT_FALSE(safe_incx(sio_u32(a)));
   a=UINT_MAX/2; b=a+2; EXPECT_FALSE(safe_addx(NULL, sio_u32(a), sio_u32(b)));
   a=UINT_MAX/2; b=a; EXPECT_TRUE(safe_addx(NULL, sio_u32(a), sio_u32(b)));
   a=UINT_MAX/2; b=a+1; EXPECT_TRUE(safe_addx(NULL, sio_u32(a), sio_u32(b)));
@@ -2616,7 +2611,7 @@ int T_add_u64() {
   int r=1;
   uint64_t a, b;
   a=1; b=SAFE_UINT64_MAX; EXPECT_FALSE(safe_addx(NULL, sio_u64(a), sio_u64(b)));
-  a=SAFE_UINT64_MAX; EXPECT_FALSE(safe_inc(u64, &a));
+  a=SAFE_UINT64_MAX; EXPECT_FALSE(safe_incx(sio_u64(a)));
   a=SAFE_UINT64_MAX/2; b=a+2; EXPECT_FALSE(safe_addx(NULL, sio_u64(a), sio_u64(b)));
   a=SAFE_UINT64_MAX/2; b=a; EXPECT_TRUE(safe_addx(NULL, sio_u64(a), sio_u64(b)));
   a=SAFE_UINT64_MAX/2; b=a+1; EXPECT_TRUE(safe_addx(NULL, sio_u64(a), sio_u64(b)));
@@ -2629,7 +2624,7 @@ int T_add_ulong() {
   int r=1;
   unsigned long a, b;
   a=1; b=ULONG_MAX; EXPECT_FALSE(safe_addx(NULL, sio_ul(a), sio_ul(b)));
-  a=ULONG_MAX; EXPECT_FALSE(safe_inc(ul, &a));
+  a=ULONG_MAX; EXPECT_FALSE(safe_incx(sio_ul(a)));
   a=ULONG_MAX/2; b=a+2; EXPECT_FALSE(safe_addx(NULL, sio_ul(a), sio_ul(b)));
   a=ULONG_MAX/2; b=a; EXPECT_TRUE(safe_addx(NULL, sio_ul(a), sio_ul(b)));
   a=ULONG_MAX/2; b=a+1; EXPECT_TRUE(safe_addx(NULL, sio_ul(a), sio_ul(b)));
@@ -2642,7 +2637,7 @@ int T_add_ulonglong() {
   int r=1;
   unsigned long long a, b;
   a=1; b=ULLONG_MAX; EXPECT_FALSE(safe_addx(NULL, sio_ull(a), sio_ull(b)));
-  a=ULLONG_MAX; EXPECT_FALSE(safe_inc(ull, &a));
+  a=ULLONG_MAX; EXPECT_FALSE(safe_incx(sio_ull(a)));
   a=ULLONG_MAX/2; b=a+2; EXPECT_FALSE(safe_addx(NULL, sio_ull(a), sio_ull(b)));
   a=ULLONG_MAX/2; b=a; EXPECT_TRUE(safe_addx(NULL, sio_ull(a), sio_ull(b)));
   a=ULLONG_MAX/2; b=a+1; EXPECT_TRUE(safe_addx(NULL, sio_ull(a), sio_ull(b)));
@@ -2655,7 +2650,7 @@ int T_add_sizet() {
   int r=1;
   size_t a, b;
   a=1; b=SIZE_MAX; EXPECT_FALSE(safe_addx(NULL, sio_szt(a), sio_szt(b)));
-  a=SIZE_MAX; EXPECT_FALSE(safe_inc(szt, &a));
+  a=SIZE_MAX; EXPECT_FALSE(safe_incx(sio_szt(a)));
   a=SIZE_MAX/2; b=a+2; EXPECT_FALSE(safe_addx(NULL, sio_szt(a), sio_szt(b)));
   a=SIZE_MAX/2; b=a; EXPECT_TRUE(safe_addx(NULL, sio_szt(a), sio_szt(b)));
   a=SIZE_MAX/2; b=a+1; EXPECT_TRUE(safe_addx(NULL, sio_szt(a), sio_szt(b)));
@@ -2677,9 +2672,17 @@ int T_add_mixed() {
   b=1; c=UCHAR_MAX-1; EXPECT_TRUE(safe_addx(NULL, sio_u8(b), sio_u16(c)));
   b=1; c=UCHAR_MAX-1; EXPECT_TRUE(safe_addx(NULL, sio_u16(c), sio_u8(b)));
   a=1; c=USHRT_MAX; EXPECT_FALSE(safe_addx(NULL, sio_s8(a), sio_u16(c)));
-  //a=1;b=1;c=USHRT_MAX-3; EXPECT_FALSE(safe_addv(NULL, 3, sio_s8(a), sio_u8(b), sio_u16(c)));
-  //a=1;b=1;c=1; EXPECT_TRUE(safe_addv(NULL, 3, sio_s8(a), sio_u8(b), sio_u16(c)));
-  //a=1;b=1;c=SCHAR_MAX-3; EXPECT_TRUE(safe_addv(NULL, 3, sio_s8(a), sio_u8(b), sio_u16(c)));
+  a=1;b=1;c=USHRT_MAX-3; EXPECT_FALSE(safe_addx3(&a, sio_s8(a), sio_u8(b), 
+                                                 sio_u16(c)));
+                         EXPECT_EQUAL(a, 1);
+  a=1;b=1;c=1; EXPECT_TRUE(safe_addx3(&a, sio_s8(a), sio_u8(b), sio_u16(c)));
+               EXPECT_EQUAL(a, 3);
+  a=1;b=1;c=SCHAR_MAX-3; EXPECT_TRUE(safe_addx3(&a, sio_s8(a), sio_u8(b),
+                                                sio_u16(c)));
+                         EXPECT_EQUAL(a, SCHAR_MAX-1);
+  a=1;b=1;c=SCHAR_MAX-3; EXPECT_FALSE(safe_addx3(NULL, sio_s8(a), sio_u8(b),
+                                                 sio_u16(c)));
+                         EXPECT_EQUAL(a, 1);
   a=-1;b=10; EXPECT_TRUE(safe_addx(NULL, sio_s8(a), sio_u8(b)));
   /* Signed negative numbers are not allowed, even if the result does
    * not underflow.  This is due to the "safe casting" performed prior to
@@ -2728,8 +2731,8 @@ int T_sub_s8() {
   int r=1;
   int8_t a, b;
   a=SCHAR_MIN; b=1; EXPECT_FALSE(safe_subx(NULL, sio_s8(a), sio_s8(b)));
-  a=SCHAR_MIN; EXPECT_FALSE(safe_dec(s8, &a));
-  a=1; EXPECT_TRUE(safe_dec(s8, &a)); EXPECT_TRUE(a==0);
+  a=SCHAR_MIN; EXPECT_FALSE(safe_decx(sio_s8(a)));
+  a=1; EXPECT_TRUE(safe_decx(sio_s8(a))); EXPECT_TRUE(a==0);
   a=SCHAR_MIN; b=SCHAR_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s8(a), sio_s8(b)));
   a=SCHAR_MIN/2; b=SCHAR_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s8(a), sio_s8(b)));
   a=-2; b=SCHAR_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s8(a), sio_s8(b)));
@@ -2746,7 +2749,7 @@ int T_sub_s16() {
   int r=1;
   int16_t a, b;
   a=SHRT_MIN; b=1; EXPECT_FALSE(safe_subx(NULL, sio_s16(a), sio_s16(b)));
-  a=SHRT_MIN; EXPECT_FALSE(safe_dec(s16, &a));
+  a=SHRT_MIN; EXPECT_FALSE(safe_decx(sio_s16(a)));
   a=SHRT_MIN; b=SHRT_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s16(a), sio_s16(b)));
   a=SHRT_MIN/2; b=SHRT_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s16(a), sio_s16(b)));
   a=-2; b=SHRT_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s16(a), sio_s16(b)));
@@ -2763,7 +2766,7 @@ int T_sub_s32() {
   int r=1;
   int32_t a, b;
   a=INT_MIN; b=1; EXPECT_FALSE(safe_subx(NULL, sio_s32(a), sio_s32(b)));
-  a=INT_MIN; EXPECT_FALSE(safe_dec(s32, &a));
+  a=INT_MIN; EXPECT_FALSE(safe_decx(sio_s32(a)));
   a=INT_MIN; b=INT_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s32(a), sio_s32(b)));
   a=INT_MIN/2; b=INT_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s32(a), sio_s32(b)));
   a=-2; b=INT_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s32(a), sio_s32(b)));
@@ -2780,7 +2783,7 @@ int T_sub_s64() {
   int r=1;
   int64_t a, b;
   a=SAFE_INT64_MIN; b=1; EXPECT_FALSE(safe_subx(NULL, sio_s64(a), sio_s64(b)));
-  a=SAFE_INT64_MIN; EXPECT_FALSE(safe_dec(s64, &a));
+  a=SAFE_INT64_MIN; EXPECT_FALSE(safe_decx(sio_s64(a)));
   a=SAFE_INT64_MIN; b=SAFE_INT64_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s64(a), sio_s64(b)));
   a=SAFE_INT64_MIN/2; b=SAFE_INT64_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s64(a), sio_s64(b)));
   a=-2; b=SAFE_INT64_MAX; EXPECT_FALSE(safe_subx(NULL, sio_s64(a), sio_s64(b)));
@@ -2797,7 +2800,7 @@ int T_sub_long() {
   int r=1;
   long a, b;
   a=LONG_MIN; b=1; EXPECT_FALSE(safe_subx(NULL, sio_sl(a), sio_sl(b)));
-  a=LONG_MIN; EXPECT_FALSE(safe_dec(sl, &a));
+  a=LONG_MIN; EXPECT_FALSE(safe_decx(sio_sl(a)));
   a=LONG_MIN; b=LONG_MAX; EXPECT_FALSE(safe_subx(NULL, sio_sl(a), sio_sl(b)));
   a=LONG_MIN/2; b=LONG_MAX; EXPECT_FALSE(safe_subx(NULL, sio_sl(a), sio_sl(b)));
   a=-2; b=LONG_MAX; EXPECT_FALSE(safe_subx(NULL, sio_sl(a), sio_sl(b)));
@@ -2814,7 +2817,7 @@ int T_sub_longlong() {
   int r=1;
   long long a, b;
   a=LLONG_MIN; b=1; EXPECT_FALSE(safe_subx(NULL, sio_sll(a), sio_sll(b)));
-  a=LLONG_MIN; EXPECT_FALSE(safe_dec(sll, &a));
+  a=LLONG_MIN; EXPECT_FALSE(safe_decx(sio_sll(a)));
   a=LLONG_MIN; b=LLONG_MAX; EXPECT_FALSE(safe_subx(NULL, sio_sll(a), sio_sll(b)));
   a=LLONG_MIN/2; b=LLONG_MAX; EXPECT_FALSE(safe_subx(NULL, sio_sll(a), sio_sll(b)));
   a=-2; b=LLONG_MAX; EXPECT_FALSE(safe_subx(NULL, sio_sll(a), sio_sll(b)));
@@ -2831,7 +2834,7 @@ int T_sub_ssizet() {
   int r=1;
   ssize_t a, b;
   a=SSIZE_MIN; b=1; EXPECT_FALSE(safe_subx(NULL, sio_sszt(a), sio_sszt(b)));
-  a=SSIZE_MIN; EXPECT_FALSE(safe_dec(sszt, &a));
+  a=SSIZE_MIN; EXPECT_FALSE(safe_decx(sio_sszt(a)));
   a=SSIZE_MIN; b=SSIZE_MAX; EXPECT_FALSE(safe_subx(NULL, sio_sszt(a), sio_sszt(b)));
   a=SSIZE_MIN/2; b=SSIZE_MAX; EXPECT_FALSE(safe_subx(NULL, sio_sszt(a), sio_sszt(b)));
   a=-2; b=SSIZE_MAX; EXPECT_FALSE(safe_subx(NULL, sio_sszt(a), sio_sszt(b)));
@@ -2848,7 +2851,7 @@ int T_sub_u8() {
   int r=1;
   uint8_t a, b;
   a=0; b=UCHAR_MAX; EXPECT_FALSE(safe_subx(NULL, sio_u8(a), sio_u8(b)));
-  a=0; EXPECT_FALSE(safe_dec(u8, &a));
+  a=0; EXPECT_FALSE(safe_decx(sio_u8(a)));
   a=UCHAR_MAX-1; b=UCHAR_MAX; EXPECT_FALSE(safe_subx(NULL, sio_u8(a), sio_u8(b)));
   a=UCHAR_MAX; b=UCHAR_MAX; EXPECT_TRUE(safe_subx(NULL, sio_u8(a), sio_u8(b)));
   a=1; b=100; EXPECT_FALSE(safe_subx(NULL, sio_u8(a), sio_u8(b)));
@@ -2862,7 +2865,7 @@ int T_sub_u16() {
   int r=1;
   uint16_t a, b;
   a=0; b=USHRT_MAX; EXPECT_FALSE(safe_subx(NULL, sio_u16(a), sio_u16(b)));
-  a=0; EXPECT_FALSE(safe_dec(u16, &a));
+  a=0; EXPECT_FALSE(safe_decx(sio_u16(a)));
   a=USHRT_MAX-1; b=USHRT_MAX; EXPECT_FALSE(safe_subx(NULL, sio_u16(a), sio_u16(b)));
   a=USHRT_MAX; b=USHRT_MAX; EXPECT_TRUE(safe_subx(NULL, sio_u16(a), sio_u16(b)));
   a=1; b=100; EXPECT_FALSE(safe_subx(NULL, sio_u16(a), sio_u16(b)));
@@ -2876,7 +2879,7 @@ int T_sub_u32() {
   int r=1;
   uint32_t a, b;
   a=UINT_MAX-1; b=UINT_MAX; EXPECT_FALSE(safe_subx(NULL, sio_u32(a), sio_u32(b)));
-  a=0; EXPECT_FALSE(safe_dec(u32, &a));
+  a=0; EXPECT_FALSE(safe_decx(sio_u32(a)));
   a=UINT_MAX; b=UINT_MAX; EXPECT_TRUE(safe_subx(NULL, sio_u32(a), sio_u32(b)));
   a=1; b=100; EXPECT_FALSE(safe_subx(NULL, sio_u32(a), sio_u32(b)));
   a=100; b=0; EXPECT_TRUE(safe_subx(NULL, sio_u32(a), sio_u32(b)));
@@ -2889,7 +2892,7 @@ int T_sub_u64() {
   int r=1;
   uint64_t a, b;
   a=SAFE_UINT64_MAX-1; b=SAFE_UINT64_MAX; EXPECT_FALSE(safe_subx(NULL, sio_u64(a), sio_u64(b)));
-  a=0; EXPECT_FALSE(safe_dec(u64, &a));
+  a=0; EXPECT_FALSE(safe_decx(sio_u64(a)));
   a=SAFE_UINT64_MAX; b=SAFE_UINT64_MAX; EXPECT_TRUE(safe_subx(NULL, sio_u64(a), sio_u64(b)));
   a=1; b=100; EXPECT_FALSE(safe_subx(NULL, sio_u64(a), sio_u64(b)));
   a=100; b=0; EXPECT_TRUE(safe_subx(NULL, sio_u64(a), sio_u64(b)));
@@ -2902,7 +2905,7 @@ int T_sub_ulong() {
   int r=1;
   unsigned long a, b;
   a=ULONG_MAX-1; b=ULONG_MAX; EXPECT_FALSE(safe_subx(NULL, sio_ul(a), sio_ul(b)));
-  a=0; EXPECT_FALSE(safe_dec(ul, &a));
+  a=0; EXPECT_FALSE(safe_decx(sio_ul(a)));
   a=ULONG_MAX; b=ULONG_MAX; EXPECT_TRUE(safe_subx(NULL, sio_ul(a), sio_ul(b)));
   a=1; b=100; EXPECT_FALSE(safe_subx(NULL, sio_ul(a), sio_ul(b)));
   a=100; b=0; EXPECT_TRUE(safe_subx(NULL, sio_ul(a), sio_ul(b)));
@@ -2915,7 +2918,7 @@ int T_sub_ulonglong() {
   int r=1;
   unsigned long long a, b;
   a=ULLONG_MAX-1; b=ULLONG_MAX; EXPECT_FALSE(safe_subx(NULL, sio_ull(a), sio_ull(b)));
-  a=0; EXPECT_FALSE(safe_dec(ull, &a));
+  a=0; EXPECT_FALSE(safe_decx(sio_ull(a)));
   a=ULLONG_MAX; b=ULLONG_MAX; EXPECT_TRUE(safe_subx(NULL, sio_ull(a), sio_ull(b)));
   a=1; b=100; EXPECT_FALSE(safe_subx(NULL, sio_ull(a), sio_ull(b)));
   a=100; b=0; EXPECT_TRUE(safe_subx(NULL, sio_ull(a), sio_ull(b)));
@@ -2928,7 +2931,7 @@ int T_sub_sizet() {
   int r=1;
   size_t a, b;
   a=SIZE_MAX-1; b=SIZE_MAX; EXPECT_FALSE(safe_subx(NULL, sio_szt(a), sio_szt(b)));
-  a=0; EXPECT_FALSE(safe_dec(szt, &a));
+  a=0; EXPECT_FALSE(safe_decx(sio_szt(a)));
   a=SIZE_MAX; b=SIZE_MAX; EXPECT_TRUE(safe_subx(NULL, sio_szt(a), sio_szt(b)));
   a=1; b=100; EXPECT_FALSE(safe_subx(NULL, sio_szt(a), sio_szt(b)));
   a=100; b=0; EXPECT_TRUE(safe_subx(NULL, sio_szt(a), sio_szt(b)));

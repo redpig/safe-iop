@@ -25,14 +25,21 @@ on Secure Coding(1) and even Wikipedia(2).
 
 = Requirements =
 
-safe_iop was designed explicitly with GNU GCC in mind and has only been tested
-with it.  Your mileage may vary.  Please let me know if it works for you with
-different compilers or on different platforms, and I'll update the Compatibility
-section below!
+safe_iop should be compatible with C99 compliant compilers, but your mileage
+may vary.  In particular, safe_iop is known to work with GNU GCC[1] and PCC[2].
+safe_iop supports two different interface sets -- one for GNU C compatible
+compilers and one for the rest (C99).  The generic interface functions in both
+GCC and PCC, while the GCC (GNU C) interface only works with compilers that
+support typeof() and statement blocks as expressions ({}).
 
 In addition, your system must supply limits.h and assert.h for safe_iop to
 function as expected.  It is possible to remove the dependence on both, but it
 breaks general portability.
+
+If you use safe_iop on a platform, or with a compiler, other than one mentioned in the Compatibility Matrix, then please let me know!
+
+[1] http://gcc.gnu.org
+[2] http://pcc.ludd.ltu.se
 
 = Usage =
 
@@ -50,13 +57,72 @@ need to include the header in the source file you will use the functions from.
 E.g., #include <safe_iop.h>
 
 safe_iop provides macros which check the validity of a given integer operation.
-It supports the following operations:
+
+== Generic interface ==
+
+The generic interface is the core of safe_iop and is compatible with C99
+friendly compilers.  It does not make use of any non-standard language
+extensions.  The interface provides the following macros:
+
+  * multiplication: safe_mulx(result, a, b)
+  * division:       safe_divx(...)
+  * addition:       safe_addx(...)
+  * subtraction:    safe_subx(...)
+  * left shift:     safe_shlx(...)
+  * right shift:    safe_shrx(...)
+
+All of these macros take a pointer, or NULL, as the first argument.  If NULL is
+supplied, the safety of the operation on a and b is checked and safety is
+confirmed with a returned 1.  If a pointer is given and the operation can be
+completed safely, the pointer will be populated with the resulting value and
+treated as the type of the first argument, a. (This may change soon.)
+
+The operands, a and b, are not just bare variables.  The operands must be
+labeled with a specific type.  This is done using any number of the supplied
+macros:
+  * signed ints: sio_s[8,16,32,64], sio_si
+  * unsigned ints: sio_u[8,16,32,64], sio_ui
+  * longs: sio_ull, sio_ll, sio_l, sio_l
+  * chars: sio_sc, sio_uc
+  * size_t: sio_sszt, sio_szt
+
+So a call may look like the following:
+{{{
+  if (!safe_addx(&a, sio_u32(a), sio_u8(b))) abort();
+}}}
+
+Please note that these macros are not safe from side effects.  Do _NOT_ pass in
+variables with incrementors or decrementors, for example:
+{{{
+  safe_addx(&a, sio_u32(a++), sio_u32(b))
+}}}
+
+In addition to these macros, several helper macros
+  * safe_incx  (e.g., safe_incx(sio_u32(a)))
+  * safe_decx  (e.g., safe_decx(sio_u32(a)))
+  * safe_<op>x[3-5]  (e.g., safe_mulx3(dst, sio_u32(a), sio_s16(b), sio_s8(c)))
+
+It is worth noting that all safe_<*>x functions will automatically determine if
+two variables with different types can be safely cast.  Casting is always done
+to the left to the type of the first operand.  In the future, this may be to
+the type of the destination, but that is not currently the case.
+
+
+== GNU C interface ==
+
+The GNU C interface is a layer on top of the generic interface discussed above.
+It supplies the same operations but protects against side effects and
+alleviates the need for programmer type-markup.  This comes at the cost of a
+few local variables and being able to be compiled only on GNU C compatible
+compilers.
+
+The supported operations are as follows:
   * multiplication: safe_mul()
   * division:       safe_div()
   * addition:       safe_add()
   * subtraction:    safe_sub()
-  * left shift:     safe_shl() (trunk r21+)
-  * right shift:    safe_shr() (trunk r21+)
+  * left shift:     safe_shl()
+  * right shift:    safe_shr()
 
 All of these macros take a result pointer, or NULL, as the first argument.  The
 subsequent argument should be the two values to operate on.  They then return
@@ -79,14 +145,15 @@ There are also two helper functions for safe increment/decrement∴
 {{{
   int a = 0;
   ...
-  if (!safe_inc(&a)) abort();
+  if (!safe_inc(a)) abort();
   ...
-  if (!safe_dec(&a)) abort();
+  if (!safe_dec(a)) abort();
 }}}
 (Available in truck after change r19)
 
-It is important to note that it is safest to pass integer of similar types to
-safe_iop.  However, as of change r20, safe_iop supports automatic type casting to the type of the first operand.  However, if this cast cannot be performed without losing data, safe_iop will fail.  The failure mode depends on the compilation options.  If -DNDEBUG is defined, the safe_iop will return false.  If it is not defined, assert() is called and the process will terminated.
+Safe_iop supports automatic type casting to the type of the first operand.
+However, if this cast cannot be performed without losing data, safe_iop will
+fail.  
 For example,
 {{{
   uint32_t a = 100, c = 0;
@@ -100,14 +167,25 @@ Examples can be found in the examples/ directory.
 == safe_iopf ==
 
 If you'd like to use the format string function, do so at your own peril :-)
-If you like it and would like to send me a patch to make it awesome, I'd
-appreciate it!  To use, just include the c file in your build, or build the
+This function should be nearly fully functional, but it needs more testing.
+
+To use, just include the c file in your build, or build the
 shared library and link it to your app:
 {{{
   make so # or make dylib for OS X 
   ...
   gcc yourapp.c ... -lsafe_iop
 }}}
+
+then call it:
+{{{
+  uint32_t a = 10;
+  int16_t b = 20;
+  uint64_t c = 2;
+  if (!safe_iopf(dst, "u32+s16/u64", a, b, c)) abort();
+}}}
+Note, casting is done to the leftmost type, and the order of operations is
+FIFO, not following any other precedence rules. The above example is (a+b)/c.
 
 More to come!
 
@@ -131,6 +209,4 @@ The changes and todo list can be found in include/safe_iop.h
 Please drop me an email if I'm doing something completely stupid, you love
 using the library, you have a patch or recommendation, or for whatever other
 reason.  I hope this software helps out a bit!
-
-
 
