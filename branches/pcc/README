@@ -32,11 +32,13 @@ compilers and one for the rest (C99).  The generic interface functions in both
 GCC and PCC, while the GCC (GNU C) interface only works with compilers that
 support typeof() and statement blocks as expressions ({}).
 
-In addition, your system must supply limits.h and assert.h for safe_iop to
-function as expected.  It is possible to remove the dependence on both, but it
-breaks general portability.
+In addition, your system must supply limits.h, assert.h, stdint.h, and
+sys/types.h standard headers for safe_iop to function as expected.  It is possible
+to remove the dependence on several of these, but consistent cross-platform
+behavior would be compromised.
 
-If you use safe_iop on a platform, or with a compiler, other than one mentioned in the Compatibility Matrix, then please let me know!
+If you use safe_iop on a platform, or with a compiler, other than one mentioned
+in the Compatibility Matrix, then please let me know!
 
 [1] http://gcc.gnu.org
 [2] http://pcc.ludd.ltu.se
@@ -46,7 +48,7 @@ If you use safe_iop on a platform, or with a compiler, other than one mentioned 
 safe_iop comes in two pieces, safe_iop.h and safe_iop.c.  safe_iop.h provides
 extensive macros for performing safe integer operations quickly and easily.
 safe_iop.c contains some testing code to make sure the package works on your
-system and a preliminary format string interface, safe_iopf.  safe_iopf is not
+system and a preliminary format string interface, sopf.  sopf is not
 for the faint of heart as it is currently under development.  The remainder of
 this document will focus on safe_iop.h.
 
@@ -64,12 +66,12 @@ The generic interface is the core of safe_iop and is compatible with C99
 friendly compilers.  It does not make use of any non-standard language
 extensions.  The interface provides the following macros:
 
-  * multiplication: safe_mulx(result, a, b)
-  * division:       safe_divx(...)
-  * addition:       safe_addx(...)
-  * subtraction:    safe_subx(...)
-  * left shift:     safe_shlx(...)
-  * right shift:    safe_shrx(...)
+  * multiplication: sop_mulx(result, a, b)
+  * division:       sop_divx(...)
+  * addition:       sop_addx(...)
+  * subtraction:    sop_subx(...)
+  * left shift:     sop_shlx(...)
+  * right shift:    sop_shrx(...)
 
 All of these macros take a pointer, or NULL, as the first argument.  If NULL is
 supplied, the safety of the operation on a and b is checked and safety is
@@ -80,29 +82,29 @@ treated as the type of the first argument, a. (This may change soon.)
 The operands, a and b, are not just bare variables.  The operands must be
 labeled with a specific type.  This is done using any number of the supplied
 macros:
-  * signed ints: sio_s[8,16,32,64], sio_si
-  * unsigned ints: sio_u[8,16,32,64], sio_ui
-  * longs: sio_ull, sio_ll, sio_l, sio_l
-  * chars: sio_sc, sio_uc
-  * size_t: sio_sszt, sio_szt
+  * signed ints: sop_s[8,16,32,64], sio_si
+  * unsigned ints: sop_u[8,16,32,64], sio_ui
+  * longs: sop_ull, sio_ll, sio_l, sio_l
+  * chars: sop_sc, sio_uc
+  * size_t: sop_sszt, sio_szt
 
 So a call may look like the following:
 {{{
-  if (!safe_addx(sio_u32(&a), sio_u32(a), sio_u8(b))) abort();
+  if (!sop_addx(sop_u32(&a), sio_u32(a), sio_u8(b))) abort();
 }}}
 
 Please note that these macros are not safe from side effects.  Do _NOT_ pass in
 variables with incrementors or decrementors, for example:
 {{{
-  safe_addx(sio_u32(&a), sio_u32(a++), sio_u32(b))
+  sop_addx(sop_u32(&a), sio_u32(a++), sio_u32(b))
 }}}
 
 In addition to these macros, several helper macros
-  * safe_incx  (e.g., safe_incx(sio_u32(a)))
-  * safe_decx  (e.g., safe_decx(sio_u32(a)))
-  * safe_<op>x[3-5] (e.g., safe_mulx3(sio_u64(dst), sio_u32(a), sio_s16(b), sio_s8(c)))
+  * sop_incx  (e.g., safe_incx(sop_u32(a)))
+  * sop_decx  (e.g., safe_decx(sop_u32(a)))
+  * sop_<op>x[3-5] (e.g., safe_mulx3(sop_u64(dst), sio_u32(a), sio_s16(b), sio_s8(c)))
 
-It is worth noting that all safe_<*>x functions will automatically determine if
+It is worth noting that all sop_<*>x functions will automatically determine if
 two variables with different types can be safely cast.  Casting is always done
 to the leftmost type.  This means that if a destination pointer is supplied,
 the values are cast to its type.  If the destination pointer is NULL, then the
@@ -119,12 +121,12 @@ compilers. In addition, this interface is not compatible with types with
 special attributes, such as 'const'.
 
 The supported operations are as follows:
-  * multiplication: safe_mul()
-  * division:       safe_div()
-  * addition:       safe_add()
-  * subtraction:    safe_sub()
-  * left shift:     safe_shl()
-  * right shift:    safe_shr()
+  * multiplication: sop_mul()
+  * division:       sop_div()
+  * addition:       sop_add()
+  * subtraction:    sop_sub()
+  * left shift:     sop_shl()
+  * right shift:    sop_shr()
 
 All of these macros take a result pointer, or NULL, as the first argument.  The
 subsequent argument should be the two values to operate on.  They then return
@@ -132,24 +134,24 @@ true or false depending on if the operation is safe or not. (If NULL is given,
 a true or false value will be returned.) 
 {{{
   uint32_t a = 100, b = 200, c = 0;
-  if (safe_mul(&c, a, b)) printf("c is %u\n", c);
+  if (sop_mul(&c, a, b)) printf("c is %u\n", c);
 }}}
 
 In addition, there are versions of these functions for multiple sequential operations:
 {{{
   uint32_t a = 100, b = 200, c = 300, d = 0;
-  if (safe_mul3(&d, a, b, c)) printf("d is %u\n", d);
+  if (sop_mul3(&d, a, b, c)) printf("d is %u\n", d);
 }}}
 
-safe_<op>3-5() are all available.
+sop_<op>3-5() are all available.
 
 There are also two helper functions for safe increment/decrement∴
 {{{
   int a = 0;
   ...
-  if (!safe_inc(a)) abort();
+  if (!sop_inc(a)) abort();
   ...
-  if (!safe_dec(a)) abort();
+  if (!sop_dec(a)) abort();
 }}}
 (Available in truck after change r19)
 
@@ -163,13 +165,13 @@ For example,
 {{{
   uint32_t a = 100, c = 0;
   uint8_t b = 20;
-  if (safe_add(&c, a, b)) /* b is cast up to a uint32_t safely! */
+  if (sop_add(&c, a, b)) /* b is cast up to a uint32_t safely! */
 }}}
 
 
 Examples can be found in the examples/ directory.
 
-== safe_iopf ==
+== sopf ==
 
 If you'd like to use the format string function, do so at your own peril :-)
 This function should be nearly fully functional, but it needs more testing.
@@ -187,7 +189,7 @@ then call it:
   uint32_t a = 10;
   int16_t b = 20;
   uint64_t c = 2;
-  if (!safe_iopf(dst, "u32+s16/u64", a, b, c)) abort();
+  if (!sopf(dst, "u32+s16/u64", a, b, c)) abort();
 }}}
 Note, casting is done to the leftmost type, and the order of operations is
 FIFO, not following any other precedence rules. The above example is (a+b)/c.
