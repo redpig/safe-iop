@@ -88,24 +88,25 @@ macros:
 
 So a call may look like the following:
 {{{
-  if (!safe_addx(&a, sio_u32(a), sio_u8(b))) abort();
+  if (!safe_addx(sio_u32(&a), sio_u32(a), sio_u8(b))) abort();
 }}}
 
 Please note that these macros are not safe from side effects.  Do _NOT_ pass in
 variables with incrementors or decrementors, for example:
 {{{
-  safe_addx(&a, sio_u32(a++), sio_u32(b))
+  safe_addx(sio_u32(&a), sio_u32(a++), sio_u32(b))
 }}}
 
 In addition to these macros, several helper macros
   * safe_incx  (e.g., safe_incx(sio_u32(a)))
   * safe_decx  (e.g., safe_decx(sio_u32(a)))
-  * safe_<op>x[3-5]  (e.g., safe_mulx3(dst, sio_u32(a), sio_s16(b), sio_s8(c)))
+  * safe_<op>x[3-5] (e.g., safe_mulx3(sio_u64(dst), sio_u32(a), sio_s16(b), sio_s8(c)))
 
 It is worth noting that all safe_<*>x functions will automatically determine if
 two variables with different types can be safely cast.  Casting is always done
-to the left to the type of the first operand.  In the future, this may be to
-the type of the destination, but that is not currently the case.
+to the leftmost type.  This means that if a destination pointer is supplied,
+the values are cast to its type.  If the destination pointer is NULL, then the
+type of the first operand is used for the safe casting tests.
 
 
 == GNU C interface ==
@@ -114,7 +115,8 @@ The GNU C interface is a layer on top of the generic interface discussed above.
 It supplies the same operations but protects against side effects and
 alleviates the need for programmer type-markup.  This comes at the cost of a
 few local variables and being able to be compiled only on GNU C compatible
-compilers.
+compilers. In addition, this interface is not compatible with types with
+special attributes, such as 'const'.
 
 The supported operations are as follows:
   * multiplication: safe_mul()
@@ -153,7 +155,10 @@ There are also two helper functions for safe increment/decrement∴
 
 Safe_iop supports automatic type casting to the type of the first operand.
 However, if this cast cannot be performed without losing data, safe_iop will
-fail.  
+fail. The GNU C interface _does NOT_ allow casting to the type of the
+pointer.  (Nb, This may be added later, but expanding the type of the pointer
+using typeof is not friendly!)
+
 For example,
 {{{
   uint32_t a = 100, c = 0;
@@ -186,6 +191,9 @@ then call it:
 }}}
 Note, casting is done to the leftmost type, and the order of operations is
 FIFO, not following any other precedence rules. The above example is (a+b)/c.
+
+Note, support for casting to a resultant type that differs from the first
+operand may be added later.  Patches are welcomed :)
 
 More to come!
 

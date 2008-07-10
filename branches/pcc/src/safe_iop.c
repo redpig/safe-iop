@@ -100,7 +100,7 @@ static int _safe_op_read_type(safe_type_t *type, const char **c) {
     value = *_h; \
     a = (_rhs) va_arg(ap, _va_rhs); \
   } \
-  if (! _func( _h, sio_##_lhs_a(value), sio_##_rhs_a(a))) \
+  if (! _func(sio_##_lhs_a(_h), sio_##_lhs_a(value), sio_##_rhs_a(a))) \
     return 0; \
 }
 
@@ -2672,12 +2672,12 @@ int T_add_mixed() {
   b=1; c=UCHAR_MAX-1; EXPECT_TRUE(safe_addx(NULL, sio_u8(b), sio_u16(c)));
   b=1; c=UCHAR_MAX-1; EXPECT_TRUE(safe_addx(NULL, sio_u16(c), sio_u8(b)));
   a=1; c=USHRT_MAX; EXPECT_FALSE(safe_addx(NULL, sio_s8(a), sio_u16(c)));
-  a=1;b=1;c=USHRT_MAX-3; EXPECT_FALSE(safe_addx3(&a, sio_s8(a), sio_u8(b), 
+  a=1;b=1;c=USHRT_MAX-3; EXPECT_FALSE(safe_addx3(sio_s8(&a), sio_s8(a), sio_u8(b),
                                                  sio_u16(c)));
                          EXPECT_EQUAL(a, 1);
-  a=1;b=1;c=1; EXPECT_TRUE(safe_addx3(&a, sio_s8(a), sio_u8(b), sio_u16(c)));
+  a=1;b=1;c=1; EXPECT_TRUE(safe_addx3(sio_s8(&a), sio_s8(a), sio_u8(b), sio_u16(c)));
                EXPECT_EQUAL(a, 3);
-  a=1;b=1;c=SCHAR_MAX-3; EXPECT_TRUE(safe_addx3(&a, sio_s8(a), sio_u8(b),
+  a=1;b=1;c=SCHAR_MAX-3; EXPECT_TRUE(safe_addx3(sio_s8(&a), sio_s8(a), sio_u8(b),
                                                 sio_u16(c)));
                          EXPECT_EQUAL(a, SCHAR_MAX-1);
   a=1;b=1;c=SCHAR_MAX-3; EXPECT_FALSE(safe_addx3(NULL, sio_s8(a), sio_u8(b),

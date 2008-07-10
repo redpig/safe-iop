@@ -8,9 +8,7 @@
  * - sio_* for internal, but exposed interface macros
  *
  * To Do:
- * - change prefix to either all safe_ or sio_
- * - add type markup to destination as well
- * -- need to add a sio_NULL to catch a NULL listing
+ * - change prefix or consistency -- maybe sil_
  * - Autogenerate test cases for all op-type-type combinations
  * - Test out with other compilers
  * - Consider ways to do safe casting with operator awareness to
@@ -21,6 +19,7 @@
  * History:
  * = 0.4
  * - Compiles under pcc
+ * - Added pointer type markup which allows for (e.g.) u64=u32+u32.
  * - Rewrote to support passing consts and compilers without typeof()
  * -- added safe_<op>x  -- primary interface
  * -- added safe_<op>x[num] - convenience interface
@@ -111,7 +110,7 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
  * of the type specified for each operation.
  *
  * Currently accepted format syntax is:
- *   [type_marker]operation...
+ *   [type_marker]operation[type_marker]...
  * The type marker may be any of the following:
  * - s[8,16,32,64] for signed of size 8-bit, etc
  * - u[8,16,32,64] for unsigned of size 8-bit, etc
@@ -124,13 +123,13 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
  * This function uses FIFO and not any other order of operations/precedence.
  *
  * The operation must be one of the following:
- * - * -- multiplication
- * - / -- division
- * - - -- subtraction
- * - + -- addition
- * - % -- modulo (remainder)
- * 
- * Whitespace will be ignored.
+ * - *   -- multiplication
+ * - /   -- division
+ * - -   -- subtraction
+ * - +   -- addition
+ * - %   -- modulo (remainder)
+ * - <<  -- left shift
+ * - >>  -- right shift
  *
  * Args:
  * - pointer to the final result
@@ -139,6 +138,9 @@ typedef enum { SAFE_IOP_TYPE_U8 = 1,
  * Output:
  * - Returns 1 on success leaving the result in value
  * - Returns 0 on failure leaving the contents of value *unknown*
+ * Caveats:
+ * - This function is only provided if safe_iop.c is compiled and linked
+ *   into the source.  Otherwise only macro-based functions are available.
  */
 int safe_iopf(void *result, const char *const fmt, ...);
 
@@ -218,6 +220,15 @@ int safe_iopf(void *result, const char *const fmt, ...);
 #define sio_signed_sio_szt(_a) 0
 #define sio_valueof_sio_szt(_a) _a
 
+/* This allows NULL to be passed in to the generic
+ * interface macros without needing to mark them up
+ * with a type (like sio_blah(NULL)). Instead, NULL
+ * will work.
+ */
+#define sio_typeof_NULL intmax_t  /* silences gcc complaints when the macos expand */
+#define sio_signed_NULL 0
+#define sio_valueof_NULL 0
+
 
 /*****************************************************************************
  * Safe-checking Implementation Macros
@@ -266,99 +277,114 @@ int safe_iopf(void *result, const char *const fmt, ...);
 
 
 /*** Same-type addition macros ***/
-#define safe_uadd(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
+#define safe_uadd(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
   (/* safety check */ \
-   ((_a_type)(_b) <= \
-      ((_a_type)(__sio(m)(umax)(_a_type) - \
-       (_a))) ? 1 : 0)) \
+   ((_ptr_type)(_b) <= \
+      ((_ptr_type)(__sio(m)(umax)(_ptr_type) - \
+       (_ptr_type)(_a))) ? 1 : 0)) \
   ? \
-    ((_ptr) != NULL ? \
-      *((_a_type *)(_ptr)) = ((_a) + (_a_type)(_b)), 1 : 1) \
+    ((_ptr) != 0 ? \
+      *((_ptr_type *)(_ptr)) = ((_ptr_type)(_a) + (_ptr_type)(_b)), 1 : 1) \
   : 0)
 
 
-#define safe_sadd(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  ( /* Do tests here */ \
-    ((((_a_type)(_b) > (_a_type)0) && \
-       ((_a) > (_a_type)0)) \
+#define safe_sadd(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+   (((((_ptr_type)(_b) > (_ptr_type)0) && \
+       ((_ptr_type)(_a) > (_ptr_type)0)) \
      ? /*>0*/  \
-       ((_a) > \
-         (_a_type)(__sio(m)(smax)(_a_type) - \
-         (_a_type)(_b)) ? 0 : 1) \
+       ((_ptr_type)(_a) > \
+         (_ptr_type)(__sio(m)(smax)(_ptr_type) - \
+         (_ptr_type)(_b)) ? 0 : 1) \
      : \
        /* <0 */ \
-       ((!((_a_type)(_b) > (_a_type)0) && \
-                !((_a) > (_a_type)0)) ? \
-         (((_a) < \
-           (_a_type)(__sio(m)(smin)(_a_type) - \
-                             (_a_type)(_b))) ? 0 : 1) : 1) \
+       ((!((_ptr_type)(_b) > (_ptr_type)0) && \
+                !((_ptr_type)(_a) > (_ptr_type)0)) ? \
+         (((_ptr_type)(_a) < \
+           (_ptr_type)(__sio(m)(smin)(_ptr_type) - \
+                             (_ptr_type)(_b))) ? 0 : 1) : 1) \
      ) \
    ? /* Now assign if needed */ \
-     ((_ptr) != NULL ? \
-       *((_a_type *)(_ptr)) = ((_a) + (_a_type)(_b)),\
+     ((_ptr) != 0 ? \
+       *((_ptr_type *)(_ptr)) = ((_ptr_type)(_a) + (_ptr_type)(_b)),\
        1 \
        : \
        1 \
      ) \
    : \
      0 \
-)
+   )
 
 /*** Same-type subtraction macros ***/
-#define safe_usub(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  ((_a) >= (_a_type)(_b) ? ((_ptr) != NULL ? \
-    *((_a_type*)(_ptr)) = ((_a) - (_b)),1 : 1) : 0 )
+#define safe_usub(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  ((_ptr_type)(_a) >= (_ptr_type)(_b) ? ((_ptr) != 0 ? \
+    *((_ptr_type*)(_ptr)) = ((_ptr_type)(_a) - (_ptr_type)(_b)),1 : 1) : 0 )
 
-#define safe_ssub(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
-  (!((_b) <= 0 && (_a) > (__sio(m)(smax)(_a_type) + (_a_type)(_b))) && \
-   !((_b) > 0 && (_a) < (__sio(m)(smin)(_a_type) + (_a_type)(_b)))) \
+#define safe_ssub(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
+  (!((_ptr_type)(_b) <= 0 && \
+     (_ptr_type)(_a) > (__sio(m)(smax)(_ptr_type) + (_ptr_type)(_b))) && \
+   !((_ptr_type)(_b) > 0 && \
+     (_ptr_type)(_a) < (__sio(m)(smin)(_ptr_type) + (_ptr_type)(_b)))) \
   ? \
-    ((_ptr) != NULL ? *((_a_type*)(_ptr)) = ((_a) - (_a_type)(_b)), 1 : 1) \
+    ((_ptr) != 0 ? *((_ptr_type *)(_ptr)) = \
+                    ((_ptr_type)(_a) - (_ptr_type)(_b)), 1 : 1) \
   : \
     0)
 
 
 /*** Same-type multiplication macros ***/
-#define safe_umul(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
-  (!(_b) || (_a) <= (__sio(m)(umax)(_a_type) / (_a_type)(_b))) \
+#define safe_umul(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
+  (!(_ptr_type)(_b) || \
+   (_ptr_type)(_a) <= (__sio(m)(umax)(_ptr_type) / (_ptr_type)(_b))) \
   ? \
-    (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = (_a) * (_a_type)(_b),1 : 1) \
+    (((_ptr) != 0) ? *((_ptr_type*)(_ptr)) = \
+                        ((_ptr_type)(_a)) * ((_ptr_type)(_b)),1 : 1) \
   : \
     0)
 
-#define safe_smul(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  ((((_a) > 0) ?  /* a is positive */ \
-    (((_b) > 0) ?  /* b and a are positive */ \
-       (((_a) > (__sio(m)(smax)(_a_type) / ((_a_type)(_b)))) ? 0 : 1) \
+#define safe_smul(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  ((((_ptr_type)(_a) > 0) ?  /* a is positive */ \
+    (((_ptr_type)(_b) > 0) ?  /* b and a are positive */ \
+       (((_ptr_type)(_a) > (__sio(m)(smax)(_ptr_type) / ((_ptr_type)(_b)))) ? 0 : 1) \
      : /* a positive, b non-positive */ \
-       (((_a_type)(_b) < (__sio(m)(smin)(_a_type) / (_a))) ? 0 : 1)) \
+       (((_ptr_type)(_b) < (__sio(m)(smin)(_ptr_type) / (_ptr_type)(_a))) ? 0 : 1)) \
    : /* a is non-positive */ \
-    (((_b) > 0) ? /* a is non-positive, b is positive */ \
-      (((_a) < (__sio(m)(smin)(_a_type) / ((_a_type)(_b)))) ? 0 : 1) \
+    (((_ptr_type)(_b) > 0) ? /* a is non-positive, b is positive */ \
+      (((_ptr_type)(_a) < (__sio(m)(smin)(_ptr_type) / ((_ptr_type)(_b)))) ? 0 : 1) \
      : /* a and b are non-positive */ \
-      ((((_a) != 0) && (((_a_type)(_b)) < (__sio(m)(smax)(_a_type) / (_a)))) ? \
+      ((((_ptr_type)(_a) != 0) && \
+       (((_ptr_type)(_b)) < (__sio(m)(smax)(_ptr_type) / (_ptr_type)(_a)))) ? \
          0 : 1) \
       ) \
   ) /* end if a and b are non-positive */ \
   ? \
-    ((_ptr) ? *((_a_type*)(_ptr)) = ((_a) * ((_a_type)(_b))),1 : 1) \
+    ((_ptr) != 0 ? *((_ptr_type*)(_ptr)) = \
+      ((_ptr_type)(_a) * ((_ptr_type)(_b))),1 : 1) \
   : 0)
 
 /*** Same-type division macros ***/
 
 /* div-by-zero is the only thing addressed */
-#define safe_udiv(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0) ? (((_ptr) != NULL) ? \
-                  *((_a_type*)(_ptr)) = ((_a) / (_a_type)(_b)),1 : \
+#define safe_udiv(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  (((_ptr_type)(_b) != 0) ? (((_ptr) != 0) ? \
+                  *((_ptr_type*)(_ptr)) = ((_ptr_type)(_a) / (_ptr_type)(_b)),1 : \
                    1) \
               : 0)
 
 /* Addreses div by zero and smin -1 */
-#define safe_sdiv(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0 && (((_a) != __sio(m)(smin)(_a_type)) || \
-    ((_a_type)(_b) != (_a_type)-1))) \
+#define safe_sdiv(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  (((_ptr_type)(_b) != 0 && (((_ptr_type)(_a) != __sio(m)(smin)(_ptr_type)) || \
+    ((_ptr_type)(_b) != (_ptr_type)-1))) \
    ? \
-    (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = ((_a) / (_a_type)(_b)),1 : 1) \
+    (((_ptr) != 0) ? *((_ptr_type*)(_ptr)) = \
+      ((_ptr_type)(_a) / (_ptr_type)(_b)),1 : 1) \
   : \
     0 \
   ) \
@@ -366,52 +392,62 @@ int safe_iopf(void *result, const char *const fmt, ...);
 
 /*** Same-type modulo macros ***/
 /* mod-by-zero is the only thing addressed */
-#define safe_umod(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0) ? (((_ptr) != NULL) ? \
-    *((_a_type*)(_ptr)) = ((_a) % (_a_type)(_b)),1 : 1) : 0)
+#define safe_umod(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  (((_ptr_type)(_b) != 0) ? (((_ptr) != 0) ? \
+    *((_ptr_type*)(_ptr)) = ((_ptr_type)(_a) % (_ptr_type)(_b)),1 : 1) : 0)
 
 /* Addreses mod by zero and smin -1 */
-#define safe_smod(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b) != 0 && (((_a) != __sio(m)(smin)(_a_type)) || \
-    ((_a_type)(_b) != (_a_type)-1))) \
+#define safe_smod(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  (((_ptr_type)(_b) != 0 && (((_ptr_type)(_a) != __sio(m)(smin)(_ptr_type)) || \
+    ((_ptr_type)(_b) != (_ptr_type)-1))) \
    ? \
-    (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = ((_a) % (_a_type)(_b)),1 : 1) \
+    (((_ptr) != 0) ? *((_ptr_type*)(_ptr)) = \
+      ((_ptr_type)(_a) % (_ptr_type)(_b)),1 : 1) \
   : \
     0 \
   ) \
 
 /*** Same-type left-shift macros ***/
-#define safe_sshl(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  ((((_a) < 0) || \
-      ((_a_type)(_b) < 0) || \
-      ((_a_type)(_b) >= sizeof(_a_type)*CHAR_BIT) || \
-      ((_a) > (__sio(m)(smax)(_a_type) >> (_a_type)(_b)))) ? \
+#define safe_sshl(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  ((((_ptr_type)(_a) < 0) || \
+      ((_ptr_type)(_b) < 0) || \
+      ((_ptr_type)(_b) >= sizeof(_ptr_type)*CHAR_BIT) || \
+      ((_ptr_type)(_a) > (__sio(m)(smax)(_ptr_type) >> (_ptr_type)(_b)))) ? \
     0 \
-  : (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = (_a) << (_a_type)(_b),1 : 1))
+  : (((_ptr) != 0) ? *((_ptr_type*)(_ptr)) = \
+      (_ptr_type)(_a) << (_ptr_type)(_b),1 : 1))
 
-#define safe_ushl(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  ((((_a_type)(_b) >= sizeof(_a_type)*CHAR_BIT) || \
-      ((_a) > (__sio(m)(umax)(_a_type) >> (_a_type)(_b)))) ? \
+#define safe_ushl(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  ((((_ptr_type)(_b) >= sizeof(_ptr_type)*CHAR_BIT) || \
+      ((_ptr_type)(_a) > (__sio(m)(umax)(_ptr_type) >> (_ptr_type)(_b)))) ? \
     0 \
   : \
-    (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = (_a) << (_a_type)(_b),1 :  1))
+    (((_ptr) != 0) ? *((_ptr_type*)(_ptr)) = \
+      (_ptr_type)(_a) << (_ptr_type)(_b),1 :  1))
 
 /*** Same-type right-shift macros ***/
 /* XXX: CERT doesnt recommend failing on -a, but it is undefined */
-#define safe_sshr(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  ((!((_a) > 0 || (_a) == 0) || \
-      !((_a_type)(_b) > 0 || (_a_type)(_b) == 0) || \
-      ((_a_type)(_b) >= sizeof(_a_type)*CHAR_BIT)) ? \
+#define safe_sshr(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  ((!((_ptr_type)(_a) > 0 || (_ptr_type)(_a) == 0) || \
+      !((_ptr_type)(_b) > 0 || (_ptr_type)(_b) == 0) || \
+      ((_ptr_type)(_b) >= sizeof(_ptr_type)*CHAR_BIT)) ? \
     0 \
   : \
-    (((_ptr) != NULL) ? *((_a_type*)(_ptr)) = (_a) >> (_a_type)(_b),1 : 1) \
+    (((_ptr) != 0) ? *((_ptr_type*)(_ptr)) = \
+      (_ptr_type)(_a) >> (_ptr_type)(_b),1 : 1) \
   )
 
 /* this doesn't whine if 0 >> n. */
-#define safe_ushr(_ptr, _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_a_type)(_b) >= (sizeof(_a_type)*CHAR_BIT)) ? \
-    0 : (((_ptr) != NULL) ? \
-         *((_a_type*)(_ptr)) = ((_a) >> (_a_type)(_b)),1 : 1))
+#define safe_ushr(_ptr_sign, _ptr_type, _ptr, \
+                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  (((_ptr_type)(_b) >= (sizeof(_ptr_type)*CHAR_BIT)) ? \
+    0 : (((_ptr) != 0) ? \
+         *((_ptr_type*)(_ptr)) = ((_ptr_type)(_a) >> (_ptr_type)(_b)),1 : 1))
 
 
 /* sio_safe_cast
@@ -420,7 +456,7 @@ int safe_iopf(void *result, const char *const fmt, ...);
  * variable's type and sign without changing value.
  *
  * This function is used internally in safe-iop but is exposed to allow
- * use if there is a needc.
+ * use if there is a need.
  */
 #define sio_safe_cast(_a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((sizeof(_a_type) == sizeof(_b_type)) \
@@ -546,8 +582,6 @@ int safe_iopf(void *result, const char *const fmt, ...);
     ) \
   )
 
-
- 
 /*****************************************************************************
  * Generic (x) interface macros
  *****************************************************************************
@@ -558,10 +592,14 @@ int safe_iopf(void *result, const char *const fmt, ...);
  *
  * Instead of requiring the specification of the type for each variable,
  * short-hand macros are provided which provide a simple interface:
- *   uint32_t a = 100, b = 200, c;
- *   if (!safe_addx(&c, sio_u32(a), sio_u32(b)) abort();
+ *   uint32_t a = 100, b = 200;
+ *   uint64_t c;
+ *   if (!safe_mulx(sio_u64(&c), sio_u32(a), sio_u32(b)) abort();
  * In addition, this interface automatically handles testing for cast-safety.
- * All operands will be cast to the type/signedness of the left-most operand.
+ * All operands will be cast to the type/signedness of the left-most operand unless
+ * there is a destination pointer. If there is a pointer, as above, the values will
+ * be cast to that type, if possible, for the operations.
+ * 
  * Ιn the example above, that is a's type: uint32_t.
  *
  * The type markup macros available are listed at the top of the file.
@@ -572,129 +610,281 @@ int safe_iopf(void *result, const char *const fmt, ...);
  *
  */
 
-
 #define safe_addx(_ptr, _a, _b) \
+(sio_valueof_##_ptr == 0 ? \
   (sio_safe_cast(sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
                  sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
-    ( sio_signed_##_a ? \
-        safe_sadd(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
-      :  \
-        safe_uadd(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
-    : 0)
+    (sio_signed_##_a ? \
+      safe_sadd(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    :  \
+      safe_uadd(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+  : 0) \
+ : \
+  (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a) && \
+   sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
+    (sio_signed_##_ptr ? \
+      safe_sadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    : \
+      safe_uadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+    : 0) \
+)
 
 #define safe_subx(_ptr, _a, _b) \
+(sio_valueof_##_ptr == 0 ? \
   (sio_safe_cast(sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
                  sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
-    ( sio_signed_##_a ? \
-        safe_ssub(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
-      :  \
-        safe_usub(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
-    : 0)
+    (sio_signed_##_a ? \
+      safe_ssub(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    :  \
+      safe_usub(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+  : 0) \
+ : \
+  (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a) && \
+   sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
+    (sio_signed_##_ptr ? \
+      safe_ssub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    : \
+      safe_usub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+    : 0) \
+)
 
 #define safe_mulx(_ptr, _a, _b) \
+(sio_valueof_##_ptr == 0 ? \
   (sio_safe_cast(sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
                  sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
-    ( sio_signed_##_a ? \
-        safe_smul(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
-      :  \
-        safe_umul(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
-    : 0)
+    (sio_signed_##_a ? \
+      safe_smul(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    :  \
+      safe_umul(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+  : 0) \
+ : \
+  (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a) && \
+   sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
+    (sio_signed_##_ptr ? \
+      safe_smul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    : \
+      safe_umul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+    : 0) \
+)
 
 #define safe_divx(_ptr, _a, _b) \
+(sio_valueof_##_ptr == 0 ? \
   (sio_safe_cast(sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
                  sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
-    ( sio_signed_##_a ? \
-        safe_sdiv(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
-      :  \
-        safe_udiv(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
-    : 0)
+    (sio_signed_##_a ? \
+      safe_sdiv(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    :  \
+      safe_udiv(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+  : 0) \
+ : \
+  (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a) && \
+   sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
+    (sio_signed_##_ptr ? \
+      safe_sdiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    : \
+      safe_udiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+    : 0) \
+)
 
 #define safe_modx(_ptr, _a, _b) \
+(sio_valueof_##_ptr == 0 ? \
   (sio_safe_cast(sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
                  sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
-    ( sio_signed_##_a ? \
-        safe_smod(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
-      :  \
-        safe_umod(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
-    : 0)
+    (sio_signed_##_a ? \
+      safe_smod(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    :  \
+      safe_umod(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+  : 0) \
+ : \
+  (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a) && \
+   sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
+    (sio_signed_##_ptr ? \
+      safe_smod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    : \
+      safe_umod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+    : 0) \
+)
+
 
 #define safe_shlx(_ptr, _a, _b) \
+(sio_valueof_##_ptr == 0 ? \
   (sio_safe_cast(sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
                  sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
-    ( sio_signed_##_a ? \
-        safe_sshl(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
-      :  \
-        safe_ushl(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
-    : 0)
+    (sio_signed_##_a ? \
+      safe_sshl(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    :  \
+      safe_ushl(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+  : 0) \
+ : \
+  (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a) && \
+   sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
+    (sio_signed_##_ptr ? \
+      safe_sshl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    : \
+      safe_ushl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+    : 0) \
+)
 
 #define safe_shrx(_ptr, _a, _b) \
+(sio_valueof_##_ptr == 0 ? \
   (sio_safe_cast(sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
                  sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
-    ( sio_signed_##_a ? \
-        safe_sshr(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
-      :  \
-        safe_ushr(_ptr, sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
-                        sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
-    : 0)
+    (sio_signed_##_a ? \
+      safe_sshr(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    :  \
+      safe_ushr(sio_signed_##_a, sio_typeof_##_a, 0, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+  : 0) \
+ : \
+  (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a) && \
+   sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                 sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) ? \
+    (sio_signed_##_ptr ? \
+      safe_sshr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b) \
+    : \
+      safe_ushr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                sio_signed_##_a, sio_typeof_##_a, sio_valueof_##_a, \
+                sio_signed_##_b, sio_typeof_##_b, sio_valueof_##_b)) \
+    : 0) \
+)
 
-/* Convenience functions */
+/* Generic interface convenience functions */
+
+/* safe_incx
+ * Increments the value stored in a variable by one.
+ * Example:
+ *   int i;
+ *   for (i = 0; i <= max && safe_incx(sio_s32(i); ) { ... }
+ * This will increment until i == max or the variable would overflow (i=INT_MAX).
+ */
 #define safe_incx(_p) \
   (sio_signed_##_p ? \
-    safe_sadd(&(sio_valueof_##_p), \
+    safe_sadd(sio_signed_##_p, sio_typeof_##_p, &(sio_valueof_##_p), \
               sio_signed_##_p, sio_typeof_##_p, sio_valueof_##_p, \
               sio_signed_##_p, sio_typeof_##_p, 1) : \
-    safe_uadd(&(sio_valueof_##_p), \
+    safe_uadd(sio_signed_##_p, sio_typeof_##_p, &(sio_valueof_##_p), \
               sio_signed_##_p, sio_typeof_##_p, sio_valueof_##_p, \
               sio_signed_##_p, sio_typeof_##_p, 1))
 
+/* safe_decx
+ * Decrements the value stored in a variable by one.
+ * Example:
+ *   unsigned int i = 1024;
+ *   while (safe_decx(sio_u32(i)) { ... }
+ * This will decrement until the variablewould underflow (i==0).
+ */
 #define safe_decx(_p) \
   (sio_signed_##_p ? \
-    safe_ssub(&(sio_valueof_##_p), \
+    safe_ssub(sio_signed_##_p, sio_typeof_##_p, &(sio_valueof_##_p), \
               sio_signed_##_p, sio_typeof_##_p, sio_valueof_##_p, \
               sio_signed_##_p, sio_typeof_##_p, 1) : \
-    safe_usub(&(sio_valueof_##_p), \
+    safe_usub(sio_signed_##_p, sio_typeof_##_p, &(sio_valueof_##_p), \
               sio_signed_##_p, sio_typeof_##_p, sio_valueof_##_p, \
               sio_signed_##_p, sio_typeof_##_p, 1))
 
-/*
- * Require _ptr to be non-NULL.
+/* safe_<op>x[3-5]
+ * These functions allow for the easy repetition of the same operation.
+ * For instance, safe_mulx3 will multiply 3 integers together if they can
+ * be safely cast to the type of the destination pointer and do not result
+ * in an overflow or underflow.
+ *
+ * For example:
+ *   if (!safe_mulx3(sio_u32(&image_sz), sio_u32(w), sio_u32(h), sio_u16(depth)))
+ *     goto ERR_handle_bad_dimensions;
  */
 #define safe_addx3(_ptr, _A, _B, _C) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+       sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+       sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sadd((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sadd((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         :  \
-            safe_uadd((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_uadd((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C)\
+          safe_uadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_uadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         ) \
       : \
         0 \
@@ -704,36 +894,42 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_addx4(_ptr, _A, _B, _C, _D) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sadd((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sadd((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_sadd((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         :  \
-            safe_uadd((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_uadd((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_uadd((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D)\
+          safe_uadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_uadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_uadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         ) \
       : \
         0 \
@@ -743,44 +939,52 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_addx5(_ptr, _A, _B, _C, _D, _E) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sadd((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sadd((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_sadd((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-          safe_sadd((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         :  \
-            safe_uadd((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_uadd((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_uadd((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) &&\
-            safe_uadd((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E)\
+          safe_uadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_uadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_uadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
+          safe_uadd(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         ) \
       : \
         0 \
@@ -790,28 +994,32 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_subx3(_ptr, _A, _B, _C) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_ssub((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_ssub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_ssub((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_ssub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         :  \
-            safe_usub((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_usub((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C)\
+          safe_usub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_usub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         ) \
       : \
         0 \
@@ -821,36 +1029,42 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_subx4(_ptr, _A, _B, _C, _D) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_ssub((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_ssub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_ssub((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_ssub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_ssub((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_ssub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         :  \
-            safe_usub((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_usub((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_usub((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D)\
+          safe_usub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_usub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_usub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         ) \
       : \
         0 \
@@ -860,44 +1074,52 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_subx5(_ptr, _A, _B, _C, _D, _E) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_ssub((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_ssub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_ssub((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_ssub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_ssub((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_ssub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-          safe_ssub((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_ssub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         :  \
-            safe_usub((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_usub((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_usub((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) &&\
-            safe_usub((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E)\
+          safe_usub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_usub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_usub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
+          safe_usub(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         ) \
       : \
         0 \
@@ -907,28 +1129,32 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_mulx3(_ptr, _A, _B, _C) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_smul((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_smul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_smul((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         :  \
-            safe_umul((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_umul((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C)\
+          safe_umul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_umul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         ) \
       : \
         0 \
@@ -938,36 +1164,42 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_mulx4(_ptr, _A, _B, _C, _D) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_smul((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_smul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_smul((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_smul((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         :  \
-            safe_umul((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_umul((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_umul((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D)\
+          safe_umul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_umul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_umul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         ) \
       : \
         0 \
@@ -977,44 +1209,52 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_mulx5(_ptr, _A, _B, _C, _D, _E) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_smul((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_smul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_smul((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_smul((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-          safe_smul((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         :  \
-            safe_umul((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_umul((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_umul((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) &&\
-            safe_umul((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E)\
+          safe_umul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_umul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_umul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
+          safe_umul(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         ) \
       : \
         0 \
@@ -1024,28 +1264,32 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_divx3(_ptr, _A, _B, _C) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sdiv((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sdiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sdiv((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sdiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         :  \
-            safe_udiv((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_udiv((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C)\
+          safe_udiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_udiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         ) \
       : \
         0 \
@@ -1055,36 +1299,42 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_divx4(_ptr, _A, _B, _C, _D) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sdiv((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sdiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sdiv((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sdiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_sdiv((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sdiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         :  \
-            safe_udiv((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_udiv((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_udiv((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D)\
+          safe_udiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_udiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_udiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         ) \
       : \
         0 \
@@ -1094,44 +1344,52 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_divx5(_ptr, _A, _B, _C, _D, _E) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sdiv((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sdiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sdiv((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sdiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_sdiv((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sdiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-          safe_sdiv((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sdiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         :  \
-            safe_udiv((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_udiv((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_udiv((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) &&\
-            safe_udiv((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E)\
+          safe_udiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_udiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_udiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
+          safe_udiv(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         ) \
       : \
         0 \
@@ -1141,28 +1399,32 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_modx3(_ptr, _A, _B, _C) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_smod((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_smod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_smod((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         :  \
-            safe_umod((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_umod((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C)\
+          safe_umod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_umod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         ) \
       : \
         0 \
@@ -1172,36 +1434,42 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_modx4(_ptr, _A, _B, _C, _D) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_smod((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_smod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_smod((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_smod((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         :  \
-            safe_umod((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_umod((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_umod((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D)\
+          safe_umod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_umod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_umod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         ) \
       : \
         0 \
@@ -1211,44 +1479,52 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_modx5(_ptr, _A, _B, _C, _D, _E) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_smod((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_smod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_smod((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_smod((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-          safe_smod((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_smod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         :  \
-            safe_umod((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_umod((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_umod((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) &&\
-            safe_umod((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E)\
+          safe_umod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_umod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_umod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
+          safe_umod(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         ) \
       : \
         0 \
@@ -1258,28 +1534,32 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_shlx3(_ptr, _A, _B, _C) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sshl((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sshl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sshl((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         :  \
-            safe_ushl((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_ushl((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C)\
+          safe_ushl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_ushl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         ) \
       : \
         0 \
@@ -1289,36 +1569,42 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_shlx4(_ptr, _A, _B, _C, _D) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sshl((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sshl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sshl((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_sshl((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         :  \
-            safe_ushl((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_ushl((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_ushl((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D)\
+          safe_ushl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_ushl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_ushl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         ) \
       : \
         0 \
@@ -1328,44 +1614,52 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_shlx5(_ptr, _A, _B, _C, _D, _E) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sshl((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sshl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sshl((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_sshl((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-          safe_sshl((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         :  \
-            safe_ushl((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_ushl((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_ushl((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) &&\
-            safe_ushl((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E)\
+          safe_ushl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_ushl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_ushl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
+          safe_ushl(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         ) \
       : \
         0 \
@@ -1375,28 +1669,32 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_shrx3(_ptr, _A, _B, _C) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sshr((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sshr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sshr((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         :  \
-            safe_ushr((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_ushr((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C)\
+          safe_ushr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_ushr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) \
         ) \
       : \
         0 \
@@ -1406,36 +1704,42 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_shrx4(_ptr, _A, _B, _C, _D) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sshr((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sshr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sshr((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_sshr((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         :  \
-            safe_ushr((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_ushr((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_ushr((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D)\
+          safe_ushr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_ushr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_ushr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) \
         ) \
       : \
         0 \
@@ -1445,44 +1749,52 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 #define safe_shrx5(_ptr, _A, _B, _C, _D, _E) \
-    (sio_assert((_ptr) != NULL) \
+    (sio_assert((sio_valueof_##_ptr) != 0) \
     ? \
-      (sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      (sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+                     sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A) && \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-       sio_safe_cast(sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+      sio_safe_cast(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
                      sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
       ? \
-        (sio_signed_##_A \
+        (sio_signed_##_ptr \
         ? \
-          safe_sshr((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
+          safe_sshr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
             sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-          safe_sshr((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
-          safe_sshr((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
-          safe_sshr((_ptr),\
-            sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
+          safe_sshr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
             sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         :  \
-            safe_ushr((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, sio_valueof_##_A, \
-              sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
-            safe_ushr((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) &&\
-            safe_ushr((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) &&\
-            safe_ushr((_ptr),\
-              sio_signed_##_A_, sio_typeof_##_A, (*(sio_typeof_##_A *)(_ptr)), \
-              sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E)\
+          safe_ushr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_A, sio_typeof_##_A, sio_valueof_##_A, \
+            sio_signed_##_B, sio_typeof_##_B, sio_valueof_##_B) && \
+          safe_ushr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_C, sio_typeof_##_C, sio_valueof_##_C) && \
+          safe_ushr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_D, sio_typeof_##_D, sio_valueof_##_D) && \
+          safe_ushr(sio_signed_##_ptr, sio_typeof_##_ptr, sio_valueof_##_ptr, \
+            sio_signed_##_ptr, sio_typeof_##_ptr, \
+              (*(sio_typeof_##_ptr *)(sio_valueof_##_ptr)), \
+            sio_signed_##_E, sio_typeof_##_E, sio_valueof_##_E) \
         ) \
       : \
         0 \
@@ -1492,20 +1804,23 @@ int safe_iopf(void *result, const char *const fmt, ...);
     )
 
 
-
-
-
 /*****************************************************************************
  * GNU C interface macros
  *****************************************************************************
  * The macros below make use of two GNU C extensions:
  * - statement blocks as expressions ({ ... })
  * - typeof()
- * This removes the risk of side-effects (e.g., safe_add(cur++, ...)) as well
- * the need for type-markup (e.g., sio_s32(a)).
+ * These functions act as convenience interfaces for GCC users, but lack the
+ * breadth of functionality of the generic interface.
+ * Benefits:
+ * - side-effect-less macros: (safe_add(cur++, ...) is OK)
+ * - no type markup: less work from you
+ * Limitations:
+ * - Casts to the type of the first operand (a) instead of the pointer
+ * - Cannot handle types with special attributes, like 'const'
  *
  * Αs with the 'x' interfaces, _dst can be NULL.  However, this also extends to
- * the convenience functions like safe_add3().
+ * the convenience functions like safe_add3() unlike in the generic interface.
  */
 
 #if defined(__GNUC__)
@@ -1524,11 +1839,11 @@ int safe_iopf(void *result, const char *const fmt, ...);
     (sio_safe_cast(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                    __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) ? \
       ( __sio(m)(is_signed)(_A) ? \
-          safe_sadd(__sio(var)(_ptr),\
+          safe_sadd(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr),\
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) \
         :  \
-          safe_uadd(__sio(var)(_ptr), \
+          safe_uadd(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr), \
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b))) \
       : 0 ); \
@@ -1544,11 +1859,11 @@ int safe_iopf(void *result, const char *const fmt, ...);
     (sio_safe_cast(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                    __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) ? \
       ( __sio(m)(is_signed)(_A) ? \
-          safe_ssub(__sio(var)(_ptr),\
+          safe_ssub(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr),\
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) \
         :  \
-          safe_usub(__sio(var)(_ptr), \
+          safe_usub(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr), \
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b))) \
       : 0 ); \
@@ -1564,11 +1879,11 @@ int safe_iopf(void *result, const char *const fmt, ...);
     (sio_safe_cast(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                    __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) ? \
       ( __sio(m)(is_signed)(_A) ? \
-          safe_smul(__sio(var)(_ptr),\
+          safe_smul(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr),\
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) \
         :  \
-          safe_umul(__sio(var)(_ptr), \
+          safe_umul(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr), \
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b))) \
       : 0 ); \
@@ -1584,11 +1899,11 @@ int safe_iopf(void *result, const char *const fmt, ...);
     (sio_safe_cast(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                    __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) ? \
       ( __sio(m)(is_signed)(_A) ? \
-          safe_sdiv(__sio(var)(_ptr),\
+          safe_sdiv(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr),\
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) \
         :  \
-          safe_udiv(__sio(var)(_ptr), \
+          safe_udiv(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr), \
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b))) \
       : 0 ); \
@@ -1604,11 +1919,11 @@ int safe_iopf(void *result, const char *const fmt, ...);
     (sio_safe_cast(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                    __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) ? \
       ( __sio(m)(is_signed)(_A) ? \
-          safe_smod(__sio(var)(_ptr),\
+          safe_smod(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr),\
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) \
         :  \
-          safe_umod(__sio(var)(_ptr), \
+          safe_umod(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr), \
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b))) \
       : 0 ); \
@@ -1624,11 +1939,11 @@ int safe_iopf(void *result, const char *const fmt, ...);
     (sio_safe_cast(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                    __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) ? \
       ( __sio(m)(is_signed)(_A) ? \
-          safe_sshl(__sio(var)(_ptr),\
+          safe_sshl(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr),\
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) \
         :  \
-          safe_ushl(__sio(var)(_ptr), \
+          safe_ushl(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr), \
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b))) \
       : 0 ); \
@@ -1644,17 +1959,16 @@ int safe_iopf(void *result, const char *const fmt, ...);
     (sio_safe_cast(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                    __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) ? \
       ( __sio(m)(is_signed)(_A) ? \
-          safe_sshr(__sio(var)(_ptr),\
+          safe_sshr(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr),\
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b)) \
         :  \
-          safe_ushr(__sio(var)(_ptr), \
+          safe_ushr(__sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_ptr), \
                     __sio(m)(is_signed)(_A), typeof(_A), __sio(var)(_a), \
                     __sio(m)(is_signed)(_B), typeof(_B), __sio(var)(_b))) \
       : 0 ); \
    __sio(var)(ok); \
 })
-
 
 /* Helper macros for performing repeated operations in one call */
 
