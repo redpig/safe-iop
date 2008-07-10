@@ -241,7 +241,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
  * take the sign and type for both operands, but only the sign and type of the
  * first operand, 'a', is used for the operation.  These macros assume
  * type-casting is safe on the given operands when they are called. (The
- * sop_sop_cast macro in this section performs just that test.)  Despite this,
+ * sop_safe_cast macro in this section performs just that test.)  Despite this,
  * the sign and type of the second operand, 'b', have been left in in case of
  * future need.
  */
@@ -451,15 +451,15 @@ int sop_iopf(void *result, const char *const fmt, ...);
          *((_ptr_type*)(_ptr)) = ((_ptr_type)(_a) >> (_ptr_type)(_b)),1 : 1))
 
 
-/* sop_sop_cast
- * sop_sop_cast takes the signedness, type, and value of two variables. It
+/* sop_safe_cast
+ * sop_safe_cast takes the signedness, type, and value of two variables. It
  * then returns true if second variable can be safely cast to the first
  * variable's type and sign without changing value.
  *
  * This function is used internally in safe-iop but is exposed to allow
  * use if there is a need.
  */
-#define sop_sop_cast(_a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+#define sop_safe_cast(_a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((sizeof(_a_type) == sizeof(_b_type)) \
   ? \
     /* sign change */ \
@@ -607,42 +607,41 @@ int sop_iopf(void *result, const char *const fmt, ...);
  *
  * With respect to side effects, never call sop_<op>x[#] with a operand that
  * may have side effects. For example:
- * [BAD!]  sop_addx(buf++, sop_s32(a--), sop_s16(--b));
+ * [BAD!]  sop_addx(sio_u32(buf++), sop_s32(a--), sop_s16(--b));
  *
  */
-
 #define sop_addx(_ptr, _a, _b) \
 (sop_valueof_##_ptr == 0 ? \
-  (sop_sop_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_a ? \
       sop_sadd(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
+               sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+               sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
     :  \
       sop_uadd(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+               sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+               sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
   : 0) \
  : \
-  (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
+  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
+   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_ptr ? \
       sop_sadd(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
+               sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+               sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
     : \
       sop_uadd(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+               sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+               sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
     : 0) \
 )
 
 #define sop_subx(_ptr, _a, _b) \
 (sop_valueof_##_ptr == 0 ? \
-  (sop_sop_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_a ? \
       sop_ssub(sop_signed_##_a, sop_typeof_##_a, 0, \
@@ -654,9 +653,9 @@ int sop_iopf(void *result, const char *const fmt, ...);
                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
   : 0) \
  : \
-  (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_ptr ? \
       sop_ssub(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
@@ -671,7 +670,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 
 #define sop_mulx(_ptr, _a, _b) \
 (sop_valueof_##_ptr == 0 ? \
-  (sop_sop_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_a ? \
       sop_smul(sop_signed_##_a, sop_typeof_##_a, 0, \
@@ -683,9 +682,9 @@ int sop_iopf(void *result, const char *const fmt, ...);
                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
   : 0) \
  : \
-  (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_ptr ? \
       sop_smul(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
@@ -700,7 +699,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 
 #define sop_divx(_ptr, _a, _b) \
 (sop_valueof_##_ptr == 0 ? \
-  (sop_sop_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_a ? \
       sop_sdiv(sop_signed_##_a, sop_typeof_##_a, 0, \
@@ -712,9 +711,9 @@ int sop_iopf(void *result, const char *const fmt, ...);
                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
   : 0) \
  : \
-  (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_ptr ? \
       sop_sdiv(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
@@ -729,7 +728,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 
 #define sop_modx(_ptr, _a, _b) \
 (sop_valueof_##_ptr == 0 ? \
-  (sop_sop_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_a ? \
       sop_smod(sop_signed_##_a, sop_typeof_##_a, 0, \
@@ -741,9 +740,9 @@ int sop_iopf(void *result, const char *const fmt, ...);
                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
   : 0) \
  : \
-  (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_ptr ? \
       sop_smod(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
@@ -759,7 +758,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 
 #define sop_shlx(_ptr, _a, _b) \
 (sop_valueof_##_ptr == 0 ? \
-  (sop_sop_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_a ? \
       sop_sshl(sop_signed_##_a, sop_typeof_##_a, 0, \
@@ -771,9 +770,9 @@ int sop_iopf(void *result, const char *const fmt, ...);
                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
   : 0) \
  : \
-  (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_ptr ? \
       sop_sshl(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
@@ -788,7 +787,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 
 #define sop_shrx(_ptr, _a, _b) \
 (sop_valueof_##_ptr == 0 ? \
-  (sop_sop_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_a ? \
       sop_sshr(sop_signed_##_a, sop_typeof_##_a, 0, \
@@ -800,9 +799,9 @@ int sop_iopf(void *result, const char *const fmt, ...);
                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
   : 0) \
  : \
-  (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     (sop_signed_##_ptr ? \
       sop_sshr(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
@@ -862,11 +861,11 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_addx3(_ptr, _A, _B, _C) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-       sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+       sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-       sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+       sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) \
       ? \
         (sop_signed_##_ptr \
@@ -897,13 +896,13 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_addx4(_ptr, _A, _B, _C, _D) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) \
       ? \
         (sop_signed_##_ptr \
@@ -942,15 +941,15 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_addx5(_ptr, _A, _B, _C, _D, _E) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_E, sop_typeof_##_E, sop_valueof_##_E) \
       ? \
         (sop_signed_##_ptr \
@@ -997,11 +996,11 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_subx3(_ptr, _A, _B, _C) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) \
       ? \
         (sop_signed_##_ptr \
@@ -1032,13 +1031,13 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_subx4(_ptr, _A, _B, _C, _D) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) \
       ? \
         (sop_signed_##_ptr \
@@ -1077,15 +1076,15 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_subx5(_ptr, _A, _B, _C, _D, _E) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_E, sop_typeof_##_E, sop_valueof_##_E) \
       ? \
         (sop_signed_##_ptr \
@@ -1132,11 +1131,11 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_mulx3(_ptr, _A, _B, _C) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) \
       ? \
         (sop_signed_##_ptr \
@@ -1167,13 +1166,13 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_mulx4(_ptr, _A, _B, _C, _D) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) \
       ? \
         (sop_signed_##_ptr \
@@ -1212,15 +1211,15 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_mulx5(_ptr, _A, _B, _C, _D, _E) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_E, sop_typeof_##_E, sop_valueof_##_E) \
       ? \
         (sop_signed_##_ptr \
@@ -1267,11 +1266,11 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_divx3(_ptr, _A, _B, _C) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) \
       ? \
         (sop_signed_##_ptr \
@@ -1302,13 +1301,13 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_divx4(_ptr, _A, _B, _C, _D) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) \
       ? \
         (sop_signed_##_ptr \
@@ -1347,15 +1346,15 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_divx5(_ptr, _A, _B, _C, _D, _E) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_E, sop_typeof_##_E, sop_valueof_##_E) \
       ? \
         (sop_signed_##_ptr \
@@ -1402,11 +1401,11 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_modx3(_ptr, _A, _B, _C) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) \
       ? \
         (sop_signed_##_ptr \
@@ -1437,13 +1436,13 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_modx4(_ptr, _A, _B, _C, _D) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) \
       ? \
         (sop_signed_##_ptr \
@@ -1482,15 +1481,15 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_modx5(_ptr, _A, _B, _C, _D, _E) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_E, sop_typeof_##_E, sop_valueof_##_E) \
       ? \
         (sop_signed_##_ptr \
@@ -1537,11 +1536,11 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_shlx3(_ptr, _A, _B, _C) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) \
       ? \
         (sop_signed_##_ptr \
@@ -1572,13 +1571,13 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_shlx4(_ptr, _A, _B, _C, _D) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) \
       ? \
         (sop_signed_##_ptr \
@@ -1617,15 +1616,15 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_shlx5(_ptr, _A, _B, _C, _D, _E) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_E, sop_typeof_##_E, sop_valueof_##_E) \
       ? \
         (sop_signed_##_ptr \
@@ -1672,11 +1671,11 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_shrx3(_ptr, _A, _B, _C) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) \
       ? \
         (sop_signed_##_ptr \
@@ -1707,13 +1706,13 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_shrx4(_ptr, _A, _B, _C, _D) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) \
       ? \
         (sop_signed_##_ptr \
@@ -1752,15 +1751,15 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_shrx5(_ptr, _A, _B, _C, _D, _E) \
     (sop_assert((sop_valueof_##_ptr) != 0) \
     ? \
-      (sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_A, sop_typeof_##_A, sop_valueof_##_A) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_B, sop_typeof_##_B, sop_valueof_##_B) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_C, sop_typeof_##_C, sop_valueof_##_C) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_D, sop_typeof_##_D, sop_valueof_##_D) && \
-      sop_sop_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+      sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                      sop_signed_##_E, sop_typeof_##_E, sop_valueof_##_E) \
       ? \
         (sop_signed_##_ptr \
@@ -1837,7 +1836,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
   _Bool __sop(var)(ok) =  \
-    (sop_sop_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
+    (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
           sop_sadd(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_ptr),\
@@ -1857,7 +1856,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
   _Bool __sop(var)(ok) =  \
-    (sop_sop_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
+    (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
           sop_ssub(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_ptr),\
@@ -1877,7 +1876,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
   _Bool __sop(var)(ok) =  \
-    (sop_sop_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
+    (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
           sop_smul(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_ptr),\
@@ -1897,7 +1896,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
   _Bool __sop(var)(ok) =  \
-    (sop_sop_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
+    (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
           sop_sdiv(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_ptr),\
@@ -1917,7 +1916,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
   _Bool __sop(var)(ok) =  \
-    (sop_sop_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
+    (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
           sop_smod(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_ptr),\
@@ -1937,7 +1936,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
   _Bool __sop(var)(ok) =  \
-    (sop_sop_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
+    (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
           sop_sshl(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_ptr),\
@@ -1957,7 +1956,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
   _Bool __sop(var)(ok) =  \
-    (sop_sop_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
+    (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
           sop_sshr(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_ptr),\
