@@ -23,6 +23,19 @@
 
 #include <safe_iop.h>
 
+typedef enum { SAFE_IOP_TYPE_U8 = 1,
+               SAFE_IOP_TYPE_S8,
+               SAFE_IOP_TYPE_U16,
+               SAFE_IOP_TYPE_S16,
+               SAFE_IOP_TYPE_U32,
+               SAFE_IOP_TYPE_S32,
+               SAFE_IOP_TYPE_U64,
+               SAFE_IOP_TYPE_S64,
+               SAFE_IOP_TYPE_DEFAULT = SAFE_IOP_TYPE_S32,
+               } sop_type_t;
+
+#define SAFE_IOP_TYPE_PREFIXES "us"
+
 /* _sopf_read_type
  * This is a static helper function for sopf which reads off
  * the type from the format string and advances the given pointer.
@@ -2462,8 +2475,15 @@ int T_add_s8() {
   /* TODO: should this just test sop_sadd and sop_uadd? */
   a=SCHAR_MIN; b=-1; EXPECT_FALSE(sop_addx(NULL, sop_s8(a), sop_s8(b)));
   a=SCHAR_MAX; b=1; EXPECT_FALSE(sop_addx(NULL, sop_s8(a), sop_s8(b)));
+#ifdef __GNUC__
+  a=SCHAR_MAX; EXPECT_FALSE(sop_inc(a));
+  a=SCHAR_MAX; b=1; EXPECT_FALSE(sop_add(NULL, a, 1));
+  a=0; EXPECT_TRUE(sop_inc(a)); EXPECT_TRUE(a==1);
+#else
+  a=SCHAR_MAX; b=1; EXPECT_FALSE(sop_addx(NULL, sop_s8(a), sop_u8(1)));
   a=SCHAR_MAX; EXPECT_FALSE(sop_incx(sop_s8(a)));
   a=0; EXPECT_TRUE(sop_incx(sop_s8(a))); EXPECT_TRUE(a==1);
+#endif
   a=10; b=11; EXPECT_TRUE(sop_addx(NULL, sop_s8(a), sop_s8(b)));
   a=-10; b=-11; EXPECT_TRUE(sop_addx(NULL, sop_s8(a), sop_s8(b)));
   a=10; b=-11; EXPECT_TRUE(sop_addx(NULL, sop_s8(a), sop_s8(b)));
@@ -2511,7 +2531,13 @@ int T_add_s64() {
   int64_t a, b;
   a=SAFE_INT64_MIN; b=-1; EXPECT_FALSE(sop_addx(NULL, sop_s64(a), sop_s64(b)));
   a=SAFE_INT64_MAX; b=1; EXPECT_FALSE(sop_addx(NULL, sop_s64(a), sop_s64(b)));
+#ifdef __GNUC__
+  a=SAFE_INT64_MAX; EXPECT_FALSE(sop_add(NULL, a, 1));
+  a=SAFE_INT64_MAX; EXPECT_FALSE(sop_inc(a));
+#else
+  a=SAFE_INT64_MAX; EXPECT_FALSE(sop_addx(NULL, sop_s64(a), sop_s64(1)));
   a=SAFE_INT64_MAX; EXPECT_FALSE(sop_incx(sop_s64(a)));
+#endif
   a=10; b=11; EXPECT_TRUE(sop_addx(NULL, sop_s64(a), sop_s64(b)));
   a=-10; b=-11; EXPECT_TRUE(sop_addx(NULL, sop_s64(a), sop_s64(b)));
   a=10; b=-11; EXPECT_TRUE(sop_addx(NULL, sop_s64(a), sop_s64(b)));
@@ -2731,8 +2757,13 @@ int T_sub_s8() {
   int r=1;
   int8_t a, b;
   a=SCHAR_MIN; b=1; EXPECT_FALSE(sop_subx(NULL, sop_s8(a), sop_s8(b)));
+#ifdef __GNUC__
+  a=SCHAR_MIN; EXPECT_FALSE(sop_dec(a));
+  a=1; EXPECT_TRUE(sop_dec(a)); EXPECT_TRUE(a==0);
+#else
   a=SCHAR_MIN; EXPECT_FALSE(sop_decx(sop_s8(a)));
   a=1; EXPECT_TRUE(sop_decx(sop_s8(a))); EXPECT_TRUE(a==0);
+#endif
   a=SCHAR_MIN; b=SCHAR_MAX; EXPECT_FALSE(sop_subx(NULL, sop_s8(a), sop_s8(b)));
   a=SCHAR_MIN/2; b=SCHAR_MAX; EXPECT_FALSE(sop_subx(NULL, sop_s8(a), sop_s8(b)));
   a=-2; b=SCHAR_MAX; EXPECT_FALSE(sop_subx(NULL, sop_s8(a), sop_s8(b)));
@@ -2749,7 +2780,11 @@ int T_sub_s16() {
   int r=1;
   int16_t a, b;
   a=SHRT_MIN; b=1; EXPECT_FALSE(sop_subx(NULL, sop_s16(a), sop_s16(b)));
+#ifdef __GNUC__
+  a=SHRT_MIN; EXPECT_FALSE(sop_dec(a));
+#else
   a=SHRT_MIN; EXPECT_FALSE(sop_decx(sop_s16(a)));
+#endif
   a=SHRT_MIN; b=SHRT_MAX; EXPECT_FALSE(sop_subx(NULL, sop_s16(a), sop_s16(b)));
   a=SHRT_MIN/2; b=SHRT_MAX; EXPECT_FALSE(sop_subx(NULL, sop_s16(a), sop_s16(b)));
   a=-2; b=SHRT_MAX; EXPECT_FALSE(sop_subx(NULL, sop_s16(a), sop_s16(b)));
