@@ -13,7 +13,7 @@
 CC = gcc
 VERSION = 0.3
 TESTNAME = safe_iop_test
-CFLAGS   = -Wall -O2 -Iinclude
+CFLAGS   = -Wall -Iinclude
 SOURCES = src/safe_iop.c
 
 all: $(TESTNAME) $(TESTNAME)_speed
