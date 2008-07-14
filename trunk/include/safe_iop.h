@@ -152,65 +152,233 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_typeof_sop_s8(_a) int8_t
 #define sop_signed_sop_s8(_a) 1
 #define sop_valueof_sop_s8(_a) _a
+/* These macros are used internally for expanding the
+ * sign-less interface (sop_addx) to the correct function
+ * without needing a runtime check (is signed).  In addition,
+ * it means that the macros for signed and unsigned operations
+ * won't be expanded everywhere.
+ */
+#define sop_add_sop_s8(_a) sop_sadd
+#define sop_sub_sop_s8(_a) sop_ssub
+#define sop_mul_sop_s8(_a) sop_smul
+#define sop_div_sop_s8(_a) sop_sdiv
+#define sop_mod_sop_s8(_a) sop_smod
+#define sop_shl_sop_s8(_a) sop_sshl
+#define sop_shr_sop_s8(_a) sop_sshr
+
+
 #define sop_typeof_sop_u8(_a) uint8_t
 #define sop_signed_sop_u8(_a) 0
 #define sop_valueof_sop_u8(_a) _a
+#define sop_add_sop_u8(_a) sop_uadd
+#define sop_sub_sop_u8(_a) sop_usub
+#define sop_mul_sop_u8(_a) sop_umul
+#define sop_div_sop_u8(_a) sop_udiv
+#define sop_mod_sop_u8(_a) sop_umod
+#define sop_shl_sop_u8(_a) sop_ushl
+#define sop_shr_sop_u8(_a) sop_ushr
+
+
 
 #define sop_typeof_sop_s16(_a) int16_t
 #define sop_signed_sop_s16(_a) 1
 #define sop_valueof_sop_s16(_a) _a
+#define sop_add_sop_s16(_a) sop_sadd
+#define sop_sub_sop_s16(_a) sop_ssub
+#define sop_mul_sop_s16(_a) sop_smul
+#define sop_div_sop_s16(_a) sop_sdiv
+#define sop_mod_sop_s16(_a) sop_smod
+#define sop_shl_sop_s16(_a) sop_sshl
+#define sop_shr_sop_s16(_a) sop_sshr
+
+
 #define sop_typeof_sop_u16(_a) uint16_t
 #define sop_signed_sop_u16(_a) 0
 #define sop_valueof_sop_u16(_a) _a
+#define sop_add_sop_u16(_a) sop_uadd
+#define sop_sub_sop_u16(_a) sop_usub
+#define sop_mul_sop_u16(_a) sop_umul
+#define sop_div_sop_u16(_a) sop_udiv
+#define sop_mod_sop_u16(_a) sop_umod
+#define sop_shl_sop_u16(_a) sop_ushl
+#define sop_shr_sop_u16(_a) sop_ushr
+
+
 
 #define sop_typeof_sop_s32(_a) int32_t
 #define sop_signed_sop_s32(_a) 1
 #define sop_valueof_sop_s32(_a) _a
+#define sop_add_sop_s32(_a) sop_sadd
+#define sop_sub_sop_s32(_a) sop_ssub
+#define sop_mul_sop_s32(_a) sop_smul
+#define sop_div_sop_s32(_a) sop_sdiv
+#define sop_mod_sop_s32(_a) sop_smod
+#define sop_shl_sop_s32(_a) sop_sshl
+#define sop_shr_sop_s32(_a) sop_sshr
+
+
 #define sop_typeof_sop_u32(_a) uint32_t
 #define sop_signed_sop_u32(_a) 0
 #define sop_valueof_sop_u32(_a) _a
+#define sop_add_sop_u32(_a) sop_uadd
+#define sop_sub_sop_u32(_a) sop_usub
+#define sop_mul_sop_u32(_a) sop_umul
+#define sop_div_sop_u32(_a) sop_udiv
+#define sop_mod_sop_u32(_a) sop_umod
+#define sop_shl_sop_u32(_a) sop_ushl
+#define sop_shr_sop_u32(_a) sop_ushr
+
+
 
 #define sop_typeof_sop_s64(_a) int64_t
 #define sop_signed_sop_s64(_a) 1
 #define sop_valueof_sop_s64(_a) _a
+#define sop_add_sop_s64(_a) sop_sadd
+#define sop_sub_sop_s64(_a) sop_ssub
+#define sop_mul_sop_s64(_a) sop_smul
+#define sop_div_sop_s64(_a) sop_sdiv
+#define sop_mod_sop_s64(_a) sop_smod
+#define sop_shl_sop_s64(_a) sop_sshl
+#define sop_shr_sop_s64(_a) sop_sshr
+
+
 #define sop_typeof_sop_u64(_a) uint64_t
 #define sop_signed_sop_u64(_a) 0
 #define sop_valueof_sop_u64(_a) _a
+#define sop_add_sop_u64(_a) sop_uadd
+#define sop_sub_sop_u64(_a) sop_usub
+#define sop_mul_sop_u64(_a) sop_umul
+#define sop_div_sop_u64(_a) sop_udiv
+#define sop_mod_sop_u64(_a) sop_umod
+#define sop_shl_sop_u64(_a) sop_ushl
+#define sop_shr_sop_u64(_a) sop_ushr
+
+
 
 #define sop_typeof_sop_sl(_a) signed long
 #define sop_signed_sop_sl(_a) 1
 #define sop_valueof_sop_sl(_a) _a
+#define sop_add_sop_sl(_a) sop_sadd
+#define sop_sub_sop_sl(_a) sop_ssub
+#define sop_mul_sop_sl(_a) sop_smul
+#define sop_div_sop_sl(_a) sop_sdiv
+#define sop_mod_sop_sl(_a) sop_smod
+#define sop_shl_sop_sl(_a) sop_sshl
+#define sop_shr_sop_sl(_a) sop_sshr
+
+
 #define sop_typeof_sop_ul(_a) unsigned long
 #define sop_signed_sop_ul(_a) 0
 #define sop_valueof_sop_ul(_a) _a
+#define sop_add_sop_ul(_a) sop_uadd
+#define sop_sub_sop_ul(_a) sop_usub
+#define sop_mul_sop_ul(_a) sop_umul
+#define sop_div_sop_ul(_a) sop_udiv
+#define sop_mod_sop_ul(_a) sop_umod
+#define sop_shl_sop_ul(_a) sop_ushl
+#define sop_shr_sop_ul(_a) sop_ushr
+
+
 
 #define sop_typeof_sop_sll(_a) signed long long
 #define sop_signed_sop_sll(_a) 1
 #define sop_valueof_sop_sll(_a) _a
+#define sop_add_sop_sll(_a) sop_sadd
+#define sop_sub_sop_sll(_a) sop_ssub
+#define sop_mul_sop_sll(_a) sop_smul
+#define sop_div_sop_sll(_a) sop_sdiv
+#define sop_mod_sop_sll(_a) sop_smod
+#define sop_shl_sop_sll(_a) sop_sshl
+#define sop_shr_sop_sll(_a) sop_sshr
+
+
 #define sop_typeof_sop_ull(_a) unsigned long long
 #define sop_signed_sop_ull(_a) 0
 #define sop_valueof_sop_ull(_a) _a
+#define sop_add_sop_ull(_a) sop_uadd
+#define sop_sub_sop_ull(_a) sop_usub
+#define sop_mul_sop_ull(_a) sop_umul
+#define sop_div_sop_ull(_a) sop_udiv
+#define sop_mod_sop_ull(_a) sop_umod
+#define sop_shl_sop_ull(_a) sop_ushl
+#define sop_shr_sop_ull(_a) sop_ushr
+
+
 
 #define sop_typeof_sop_si(_a) signed int
 #define sop_signed_sop_si(_a) 1
 #define sop_valueof_sop_si(_a) _a
+#define sop_add_sop_si(_a) sop_sadd
+#define sop_sub_sop_si(_a) sop_ssub
+#define sop_mul_sop_si(_a) sop_smul
+#define sop_div_sop_si(_a) sop_sdiv
+#define sop_mod_sop_si(_a) sop_smod
+#define sop_shl_sop_si(_a) sop_sshl
+#define sop_shr_sop_si(_a) sop_sshr
+
+
 #define sop_typeof_sop_ui(_a) unsigned int
 #define sop_signed_sop_ui(_a) 0
 #define sop_valueof_sop_ui(_a) _a
+#define sop_add_sop_ui(_a) sop_uadd
+#define sop_sub_sop_ui(_a) sop_usub
+#define sop_mul_sop_ui(_a) sop_umul
+#define sop_div_sop_ui(_a) sop_udiv
+#define sop_mod_sop_ui(_a) sop_umod
+#define sop_shl_sop_ui(_a) sop_ushl
+#define sop_shr_sop_ui(_a) sop_ushr
+
+
 
 #define sop_typeof_sop_sc(_a) signed char
 #define sop_signed_sop_sc(_a) 1
 #define sop_valueof_sop_sc(_a) _a
+#define sop_add_sop_sc(_a) sop_sadd
+#define sop_sub_sop_sc(_a) sop_ssub
+#define sop_mul_sop_sc(_a) sop_smul
+#define sop_div_sop_sc(_a) sop_sdiv
+#define sop_mod_sop_sc(_a) sop_smod
+#define sop_shl_sop_sc(_a) sop_sshl
+#define sop_shr_sop_sc(_a) sop_sshr
+
+
 #define sop_typeof_sop_uc(_a) unsigned char
 #define sop_signed_sop_uc(_a) 0
 #define sop_valueof_sop_uc(_a) _a
+#define sop_add_sop_uc(_a) sop_uadd
+#define sop_sub_sop_uc(_a) sop_usub
+#define sop_mul_sop_uc(_a) sop_umul
+#define sop_div_sop_uc(_a) sop_udiv
+#define sop_mod_sop_uc(_a) sop_umod
+#define sop_shl_sop_uc(_a) sop_ushl
+#define sop_shr_sop_uc(_a) sop_ushr
+
+
 
 #define sop_typeof_sop_sszt(_a) ssize_t
 #define sop_signed_sop_sszt(_a) 1
 #define sop_valueof_sop_sszt(_a) _a
+#define sop_add_sop_sszt(_a) sop_sadd
+#define sop_sub_sop_sszt(_a) sop_ssub
+#define sop_mul_sop_sszt(_a) sop_smul
+#define sop_div_sop_sszt(_a) sop_sdiv
+#define sop_mod_sop_sszt(_a) sop_smod
+#define sop_shl_sop_sszt(_a) sop_sshl
+#define sop_shr_sop_sszt(_a) sop_sshr
+
+
 #define sop_typeof_sop_szt(_a) size_t
 #define sop_signed_sop_szt(_a) 0
 #define sop_valueof_sop_szt(_a) _a
+#define sop_add_sop_szt(_a) sop_uadd
+#define sop_sub_sop_szt(_a) sop_usub
+#define sop_mul_sop_szt(_a) sop_umul
+#define sop_div_sop_szt(_a) sop_udiv
+#define sop_mod_sop_szt(_a) sop_umod
+#define sop_shl_sop_szt(_a) sop_ushl
+#define sop_shr_sop_szt(_a) sop_ushr
+
+
 
 /* This allows NULL to be passed in to the generic
  * interface macros without needing to mark them up
@@ -616,28 +784,20 @@ int sop_iopf(void *result, const char *const fmt, ...);
 (sop_valueof_##_ptr == 0 ? \
   (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_a ? \
-      sop_sadd(sop_signed_##_a, sop_typeof_##_a, 0, \
+    sop_add_##_a( \
+               sop_signed_##_a, sop_typeof_##_a, 0, \
                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    :  \
-      sop_uadd(sop_signed_##_a, sop_typeof_##_a, 0, \
-               sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-               sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
   : 0) \
  : \
   (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
    sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_ptr ? \
-      sop_sadd(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+     sop_add_##_a( \
+               sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    : \
-      sop_uadd(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-               sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-               sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
     : 0) \
 )
 
@@ -645,116 +805,76 @@ int sop_iopf(void *result, const char *const fmt, ...);
 (sop_valueof_##_ptr == 0 ? \
   (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_a ? \
-      sop_ssub(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    :  \
-      sop_usub(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+    sop_sub_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
   : 0) \
  : \
   (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
    sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_ptr ? \
-      sop_ssub(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    : \
-      sop_usub(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
-    : 0) \
+    sop_sub_##_a(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
+  : 0) \
 )
 
 #define sop_mulx(_ptr, _a, _b) \
 (sop_valueof_##_ptr == 0 ? \
   (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_a ? \
-      sop_smul(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    :  \
-      sop_umul(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+    sop_mul_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
   : 0) \
  : \
   (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
    sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_ptr ? \
-      sop_smul(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    : \
-      sop_umul(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
-    : 0) \
+    sop_mul_##_a(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
+  : 0) \
 )
 
 #define sop_divx(_ptr, _a, _b) \
 (sop_valueof_##_ptr == 0 ? \
   (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_a ? \
-      sop_sdiv(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    :  \
-      sop_udiv(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+    sop_div_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
   : 0) \
  : \
   (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
    sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_ptr ? \
-      sop_sdiv(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    : \
-      sop_udiv(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
-    : 0) \
+    sop_div_##_a(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
+  : 0) \
 )
 
 #define sop_modx(_ptr, _a, _b) \
 (sop_valueof_##_ptr == 0 ? \
   (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_a ? \
-      sop_smod(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    :  \
-      sop_umod(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+    sop_mod_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
   : 0) \
  : \
   (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
    sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_ptr ? \
-      sop_smod(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    : \
-      sop_umod(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
-    : 0) \
+    sop_mod_##_a(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
+  : 0) \
 )
 
 
@@ -762,28 +882,18 @@ int sop_iopf(void *result, const char *const fmt, ...);
 (sop_valueof_##_ptr == 0 ? \
   (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_a ? \
-      sop_sshl(sop_signed_##_a, sop_typeof_##_a, 0, \
-               sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-               sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    :  \
-      sop_ushl(sop_signed_##_a, sop_typeof_##_a, 0, \
-               sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-               sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+    sop_shl_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
   : 0) \
  : \
   (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
    sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_ptr ? \
-      sop_sshl(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    : \
-      sop_ushl(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+    sop_shl_##_a(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
     : 0) \
 )
 
@@ -791,28 +901,18 @@ int sop_iopf(void *result, const char *const fmt, ...);
 (sop_valueof_##_ptr == 0 ? \
   (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_a ? \
-      sop_sshr(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    :  \
-      sop_ushr(sop_signed_##_a, sop_typeof_##_a, 0, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+    sop_shr_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
   : 0) \
  : \
   (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
    sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    (sop_signed_##_ptr ? \
-      sop_sshr(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    : \
-      sop_ushr(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+    sop_shr_##_a(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
     : 0) \
 )
 

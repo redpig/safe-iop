@@ -3737,8 +3737,8 @@ int T_shl_ulong() {
   a=1; b=sizeof(unsigned long)*CHAR_BIT+1; EXPECT_FALSE(sop_shlx(NULL, sop_ul(a), sop_ul(b)));
   a=4; b=sizeof(unsigned long)*CHAR_BIT; EXPECT_FALSE(sop_shlx(NULL, sop_ul(a), sop_ul(b)));
   a=ULONG_MAX; b=1; EXPECT_FALSE(sop_shlx(NULL, sop_ul(a), sop_ul(b)));
-  a=1; b=2; EXPECT_TRUE(sop_shlx(NULL, sop_ul(a), sop_ul(b)));
-  a=1; b=4; EXPECT_TRUE(sop_shlx(NULL, sop_ul(a), sop_ul(b)));
+  a=6; b=1; EXPECT_TRUE(sop_shlx(NULL, sop_ul(a), sop_ul(b)));
+  a=10; b=2; EXPECT_TRUE(sop_shlx(NULL, sop_ul(a), sop_ul(b)));
   return r;
 }
 
