@@ -8,20 +8,11 @@
  *
  * To Do:
  * = next milestone (0.5.0)
- * - Break up safe_cast into smaller macros with prefixes which can be
- *   concatenated. E.g., sop_safe_cast_sop_u32_sop_s16
- * - If it isn't too hideous, add in a ptr component so that the
- *   runtime pointer NULL test can go away. This will fix gcc type-limit
- *   warns mostly. E.g., sop_safe_cast_NULL_sop_u32_sop_s16
- * -- the NULL cases will map to sop_safe_cast_<a>_<b>
- * - Figure out how to bounce the operations to do compile time ptr type checks
- * - Determine if the first value should still need to be a ptr
- * -- e.g., sop_add(sop_s16(a)) instead of sop_s16(&a)?
  * - Autogenerate test cases for all op-type-type combinations
  * - Add while() and for() test cases for inc and dec
- * - Add cast up destination tests u64=u32*u32
- * - Test out with other compilers
  * = long term/never:
+ * - break up sop_safe_cast into smaller macros using suffix concatenation to
+ *   minimize repeated code and make it easier to review
  * - Consider ways to do safe casting with operator awareness to
  *   allow cases where an addition of a negative signed value may be safe
  *   as a subtraction, for example. (Perhaps using checked type promotion
@@ -29,7 +20,10 @@
  *
  * History:
  * = [next milestone]
+ * - Use cpp concatenation to minimize code duplication
+ * -- E.g., sop_addx no longer expands sop_sadd and sop_uadd at each callsite
  * - re-namespaced to sop_
+ * - All tests pass under pcc
  * - Compiles under pcc
  * - Added pointer type markup which allows for (e.g.) u64=u32+u32.
  * - Rewrote to support passing consts and compilers without typeof()
@@ -95,8 +89,8 @@
 #ifndef _SAFE_IOP_H
 #define _SAFE_IOP_H
 #include <assert.h>  /* for convenience NULL check  */
-#include <limits.h>  /* for CHAR_BIT */
-#include <stdint.h> /* [u]int<bits>_t */
+#include <limits.h>  /* for CHAR_BIT, INT_MAX, LONG_MAX */
+#include <stdint.h> /* [u]int<bits>_t, [U]INT64_MAX */
 #include <sys/types.h> /* for [s]size_t */
 
 #define SAFE_IOP_VERSION "0.5.0rc1"
@@ -394,24 +388,36 @@ int sop_iopf(void *result, const char *const fmt, ...);
 #define sop_typeof_NULL intmax_t  /* silences gcc complaints when the macos expand */
 #define sop_signed_NULL 0
 #define sop_valueof_NULL 0
-/* TODO: make these trampolines to the right macro. E.g.,
-#define sop_add_NULL(_ptr_sign, _ptr_type, _ptr, \
-                     _a_sign, _a_type, _a, \
-                     _b_sign, _b_type, _b) \
-  sop_add_##_a(_a_sign, _a_type, NULL, \
-               _a_sign, _a_type, _a, \
-               _b_sign, _b_type, _b)
-TODO: pass in marked up _ptr, _a, and _b to make this work.
--- may hit the 4096 char limit. we'll see.
-*/
-#define sop_add_NULL sop_uadd
-#define sop_sub_NULL sop_usub
-#define sop_mul_NULL sop_umul
-#define sop_div_NULL sop_udiv
-#define sop_mod_NULL sop_umod
-#define sop_shl_NULL sop_ushl
-#define sop_shr_NULL sop_ushr
+/* Macros for handling pointer presence/non-presence. */
+#define sop_safe_cast_NULL sop_safe_cast_np
 
+#define sop_safe_cast_sop_u8(_X)   sop_safe_cast_p
+#define sop_safe_cast_sop_s8(_X)   sop_safe_cast_p
+#define sop_safe_cast_sop_u16(_X)  sop_safe_cast_p
+#define sop_safe_cast_sop_s16(_X)  sop_safe_cast_p
+#define sop_safe_cast_sop_u32(_X)  sop_safe_cast_p
+#define sop_safe_cast_sop_s32(_X)  sop_safe_cast_p
+#define sop_safe_cast_sop_u64(_X)  sop_safe_cast_p
+#define sop_safe_cast_sop_s64(_X)  sop_safe_cast_p
+#define sop_safe_cast_sop_uc(_X) sop_safe_cast_p
+#define sop_safe_cast_sop_sc(_X) sop_safe_cast_p
+#define sop_safe_cast_sop_ui(_X) sop_safe_cast_p
+#define sop_safe_cast_sop_si(_X) sop_safe_cast_p
+#define sop_safe_cast_sop_ul(_X) sop_safe_cast_p
+#define sop_safe_cast_sop_sl(_X) sop_safe_cast_p
+#define sop_safe_cast_sop_ull(_X) sop_safe_cast_p
+#define sop_safe_cast_sop_sll(_X) sop_safe_cast_p
+#define sop_safe_cast_sop_szt(_X) sop_safe_cast_p
+#define sop_safe_cast_sop_sszt(_X) sop_safe_cast_p
+
+/* Since we detect NULLness with a conditional, just return 0 for this case */
+#define sop_add_NULL(_A,_B,_C,_D,_E,_F,_G,_H,_I) 0
+#define sop_sub_NULL(_A,_B,_C,_D,_E,_F,_G,_H,_I) 0
+#define sop_mul_NULL(_A,_B,_C,_D,_E,_F,_G,_H,_I) 0
+#define sop_div_NULL(_A,_B,_C,_D,_E,_F,_G,_H,_I) 0
+#define sop_mod_NULL(_A,_B,_C,_D,_E,_F,_G,_H,_I) 0
+#define sop_shl_NULL(_A,_B,_C,_D,_E,_F,_G,_H,_I) 0
+#define sop_shr_NULL(_A,_B,_C,_D,_E,_F,_G,_H,_I) 0
 
 /*****************************************************************************
  * Safe-checking Implementation Macros
@@ -461,7 +467,7 @@ TODO: pass in marked up _ptr, _a, and _b to make this work.
 
 /*** Same-type addition macros ***/
 #define sop_uadd(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b)  \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
  ((((_ptr_type)(_b) <= \
       ((_ptr_type)(__sop(m)(umax)(_ptr_type) - (_ptr_type)(_a))) ? 1 : 0)) \
    ? \
@@ -561,10 +567,9 @@ TODO: pass in marked up _ptr, _a, and _b to make this work.
 #define sop_sdiv(_ptr_sign, _ptr_type, _ptr, \
                   _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_ptr_type)(_b) != 0) && \
-   /* GCC type-limits hack: \
-    * XXX: Cast min to _a_type. Is this fully safe? */ \
-   (((_a_type)(_a) != (_a_type)__sop(m)(smin)(_ptr_type)) || \
-   /* GCC type-limits hack: */ \
+   (((_ptr_type)(_a) != __sop(m)(smin)(_ptr_type)) || \
+   /* GCC type-limits hack:  \
+    * whines if b is unsigned even with a cast, but should extend fine. */ \
     ((_b_type)(_b) != (_b_type)-1))) \
    ? \
     (((_ptr) != 0) ? *((_ptr_type*)(_ptr)) = \
@@ -585,9 +590,7 @@ TODO: pass in marked up _ptr, _a, and _b to make this work.
 #define sop_smod(_ptr_sign, _ptr_type, _ptr, \
                   _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_ptr_type)(_b) != 0) && \
-   /* GCC type-limits hack: \
-    * XXX: Cast min to _a_type. Is this fully safe? */ \
-   (((_a_type)(_a) != (_a_type)__sop(m)(smin)(_ptr_type)) || \
+   (((_ptr_type)(_a) != __sop(m)(smin)(_ptr_type)) || \
    /* GCC type-limits hack: */ \
     ((_b_type)(_b) != (_b_type)-1))) \
    ? \
@@ -613,8 +616,6 @@ TODO: pass in marked up _ptr, _a, and _b to make this work.
 #define sop_ushl(_ptr_sign, _ptr_type, _ptr, \
                   _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_ptr_type)(_b) >= (sizeof(_ptr_type)*CHAR_BIT)) || \
-   /* This GCC type-limit warning is hard to mask without either \
-    * an unsafe, potential down cast or doing another safe_cast test */ \
    (((_ptr_type)(_a)) > (__sop(m)(umax)(_ptr_type) >> ((_ptr_type)(_b))))) \
   ? \
     0 \
@@ -776,6 +777,27 @@ TODO: pass in marked up _ptr, _a, and _b to make this work.
     ) \
   )
 
+
+/* These functions allow compile-time resolution of whether _ptr is non-NULL.
+ * In the future, concatenation tactics like these and the ones used with the
+ * operations may be employed to compartmentalize the sop_safe_cast tests, but
+ * that pushes extra work on preprocessors tests for portability (CHAR_BIT == 8)
+ * Is int and int32 or an int16, etc.
+ */
+#define sop_safe_cast_np(_ptr_sign, _ptr_type, _ptr, \
+                        _a_sign, _a_type, _a, \
+                        _b_sign, _b_type, _b) \
+  sop_safe_cast(_a_sign, _a_type, _a, _b_sign, _b_type, _b)
+
+
+#define sop_safe_cast_p(_ptr_sign, _ptr_type, _ptr, \
+                        _a_sign, _a_type, _a, \
+                        _b_sign, _b_type, _b) \
+  sop_safe_cast(_ptr_sign, _ptr_type, _ptr, _a_sign, _a_type, _a) && \
+  sop_safe_cast(_ptr_sign, _ptr_type, _ptr, _b_sign, _b_type, _b)
+
+
+
 /*****************************************************************************
  * Generic (x) interface macros
  *****************************************************************************
@@ -804,140 +826,130 @@ TODO: pass in marked up _ptr, _a, and _b to make this work.
  *
  */
 #define sop_addx(_ptr, _a, _b) \
-(sop_valueof_##_ptr == 0 ? \
-  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_add_##_a( \
-               sop_signed_##_a, sop_typeof_##_a, 0, \
-               sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-               sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
- : \
-  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-     sop_add_##_ptr( \
-               sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-               sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-               sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    : 0) \
-)
+  (sop_safe_cast_##_ptr(\
+    sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+    sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+    sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
+    /* PCC won't do an extra dereference here! */ \
+    (sop_valueof_##_ptr ? \
+      sop_add_##_ptr( \
+                 sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
+    : \
+      sop_add_##_a( \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+  : 0)
 
 #define sop_subx(_ptr, _a, _b) \
-(sop_valueof_##_ptr == 0 ? \
-  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_sub_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+  (sop_safe_cast_##_ptr(\
+    sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+    sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+    sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
+    /* PCC won't do an extra dereference here! */ \
+    (sop_valueof_##_ptr ? \
+      sop_sub_##_ptr( \
+                 sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
- : \
-  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_sub_##_ptr(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                   sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                   sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
-)
+    : \
+      sop_sub_##_a( \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+  : 0)
 
 #define sop_mulx(_ptr, _a, _b) \
-(sop_valueof_##_ptr == 0 ? \
-  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_mul_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+  (sop_safe_cast_##_ptr(\
+    sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+    sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+    sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
+    /* PCC won't do an extra dereference here! */ \
+    (sop_valueof_##_ptr ? \
+      sop_mul_##_ptr( \
+                 sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
- : \
-  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_mul_##_ptr(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
-)
+    : \
+      sop_mul_##_a( \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+  : 0)
 
 #define sop_divx(_ptr, _a, _b) \
-(sop_valueof_##_ptr == 0 ? \
-  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_div_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+  (sop_safe_cast_##_ptr(\
+    sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+    sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+    sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
+    /* PCC won't do an extra dereference here! */ \
+    (sop_valueof_##_ptr ? \
+      sop_div_##_ptr( \
+                 sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
- : \
-  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_div_##_ptr(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                   sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                   sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
-)
+    : \
+      sop_div_##_a( \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+  : 0)
 
 #define sop_modx(_ptr, _a, _b) \
-(sop_valueof_##_ptr == 0 ? \
-  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_mod_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+  (sop_safe_cast_##_ptr(\
+    sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+    sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+    sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
+    /* PCC won't do an extra dereference here! */ \
+    (sop_valueof_##_ptr ? \
+      sop_mod_##_ptr( \
+                 sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
- : \
-  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_mod_##_ptr(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                   sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                   sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
-)
-
+    : \
+      sop_mod_##_a( \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+  : 0)
 
 #define sop_shlx(_ptr, _a, _b) \
-(sop_valueof_##_ptr == 0 ? \
-  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_shl_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+  (sop_safe_cast_##_ptr(\
+    sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+    sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+    sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
+    /* PCC won't do an extra dereference here! */ \
+    (sop_valueof_##_ptr ? \
+      sop_shl_##_ptr( \
+                 sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
- : \
-  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_shl_##_ptr(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                   sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                   sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    : 0) \
-)
+    : \
+      sop_shl_##_a( \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+  : 0)
 
 #define sop_shrx(_ptr, _a, _b) \
-(sop_valueof_##_ptr == 0 ? \
-  (sop_safe_cast(sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_shr_##_a(sop_signed_##_a, sop_typeof_##_a, 0, \
+  (sop_safe_cast_##_ptr(\
+    sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
+    sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+    sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
+    /* PCC won't do an extra dereference here! */ \
+    (sop_valueof_##_ptr ? \
+      sop_shr_##_ptr( \
+                 sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
                  sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-  : 0) \
- : \
-  (sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a) && \
-   sop_safe_cast(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
-    sop_shr_##_ptr(sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
-                   sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
-                   sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) \
-    : 0) \
-)
+    : \
+      sop_shr_##_a( \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_ptr, \
+                 sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
+                 sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b)) \
+  : 0)
 
 /* Generic interface convenience functions */
 
