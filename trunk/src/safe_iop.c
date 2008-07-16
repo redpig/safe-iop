@@ -4572,6 +4572,12 @@ int T_magic_constants() {
   EXPECT_EQUAL(__sop(m)(smax)(long long), LLONG_MAX);
   EXPECT_EQUAL(__sop(m)(umax)(unsigned long long), ULLONG_MAX);
 
+  /* testing safe cast down assumptions:
+   * If any of these fail, then a safe downward cast from signed
+   * to unsigned will not be tested correctly. */
+  EXPECT_TRUE(__sop(m)(umax)(uint8_t) <  __sop(m)(smax)(int16_t));
+  EXPECT_TRUE(__sop(m)(umax)(uint16_t) < __sop(m)(smax)(int32_t));
+  EXPECT_TRUE(__sop(m)(umax)(uint32_t) < __sop(m)(smax)(int64_t));
   return r;
 }
 

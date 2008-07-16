@@ -89,7 +89,7 @@
 #ifndef _SAFE_IOP_H
 #define _SAFE_IOP_H
 #include <assert.h>  /* for convenience NULL check  */
-#include <limits.h>  /* for CHAR_BIT, INT_MAX, LONG_MAX */
+#include <limits.h>  /* for CHAR_BIT */
 #include <stdint.h> /* [u]int<bits>_t, [U]INT64_MAX */
 #include <sys/types.h> /* for [s]size_t */
 
@@ -504,7 +504,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 
 /*** Same-type subtraction macros ***/
 #define sop_usub(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((_ptr_type)(_a) >= (_ptr_type)(_b) ? ((_ptr) != 0 ? \
     *((_ptr_type*)(_ptr)) = ((_ptr_type)(_a) - (_ptr_type)(_b)),1 : 1) : 0 )
 
@@ -523,7 +523,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 
 /*** Same-type multiplication macros ***/
 #define sop_umul(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) ( \
   (!(_ptr_type)(_b) || \
    (_ptr_type)(_a) <= (__sop(m)(umax)(_ptr_type) / (_ptr_type)(_b))) \
   ? \
@@ -533,7 +533,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
     0)
 
 #define sop_smul(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_ptr_type)(_a) > 0) ?  /* a is positive */ \
     (((_ptr_type)(_b) > 0) ?  /* b and a are positive */ \
        (((_ptr_type)(_a) > (__sop(m)(smax)(_ptr_type) / ((_ptr_type)(_b)))) ? 0 : 1) \
@@ -557,7 +557,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 
 /* div-by-zero is the only thing addressed */
 #define sop_udiv(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   (((_ptr_type)(_b) != 0) ? (((_ptr) != 0) ? \
                   *((_ptr_type*)(_ptr)) = ((_ptr_type)(_a) / (_ptr_type)(_b)),1 : \
                    1) \
@@ -565,7 +565,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 
 /* Addreses div by zero and smin -1 */
 #define sop_sdiv(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_ptr_type)(_b) != 0) && \
    (((_ptr_type)(_a) != __sop(m)(smin)(_ptr_type)) || \
    /* GCC type-limits hack:  \
@@ -582,13 +582,13 @@ int sop_iopf(void *result, const char *const fmt, ...);
 /*** Same-type modulo macros ***/
 /* mod-by-zero is the only thing addressed */
 #define sop_umod(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   (((_ptr_type)(_b) != 0) ? (((_ptr) != 0) ? \
     *((_ptr_type*)(_ptr)) = ((_ptr_type)(_a) % (_ptr_type)(_b)),1 : 1) : 0)
 
 /* Addreses mod by zero and smin -1 */
 #define sop_smod(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_ptr_type)(_b) != 0) && \
    (((_ptr_type)(_a) != __sop(m)(smin)(_ptr_type)) || \
    /* GCC type-limits hack: */ \
@@ -602,7 +602,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 
 /*** Same-type left-shift macros ***/
 #define sop_sshl(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   /* GCC type-limit hack: \
    * should just check if < 0 */ \
   ((!((_ptr_type)(_a) > 0 || (_ptr_type)(_a) == 0) || \
@@ -614,7 +614,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
       (_ptr_type)(_a) << (_ptr_type)(_b),1 : 1))
 
 #define sop_ushl(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((((_ptr_type)(_b) >= (sizeof(_ptr_type)*CHAR_BIT)) || \
    (((_ptr_type)(_a)) > (__sop(m)(umax)(_ptr_type) >> ((_ptr_type)(_b))))) \
   ? \
@@ -626,7 +626,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
 /*** Same-type right-shift macros ***/
 /* XXX: CERT doesnt recommend failing on -a, but it is undefined */
 #define sop_sshr(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
   ((!((_ptr_type)(_a) > 0 || (_ptr_type)(_a) == 0) || \
       !((_ptr_type)(_b) > 0 || (_ptr_type)(_b) == 0) || \
       ((_ptr_type)(_b) >= sizeof(_ptr_type)*CHAR_BIT)) ? \
@@ -636,10 +636,10 @@ int sop_iopf(void *result, const char *const fmt, ...);
       (_ptr_type)(_a) >> (_ptr_type)(_b),1 : 1) \
   )
 
-/* this doesn't whine if 0 >> n. */
+/* this doesn't complain if 0 >> n. */
 #define sop_ushr(_ptr_sign, _ptr_type, _ptr, \
-                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-  (((_b_type)(_b) >= (_b_type)(sizeof(_ptr_type)*CHAR_BIT)) ? \
+                 _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
+  (((_ptr_type)(_b) >= (_ptr_type)(sizeof(_ptr_type)*CHAR_BIT)) ? \
     0 : (((_ptr) != 0) ? \
          *((_ptr_type*)(_ptr)) = ((_ptr_type)(_a) >> (_ptr_type)(_b)),1 : 1))
 
@@ -682,7 +682,6 @@ int sop_iopf(void *result, const char *const fmt, ...);
     ((sizeof(_a_type) > sizeof(_b_type)) \
     ? \
       /* cast up: this allows -1, e.g., which means extension. */ \
-      /* Is that _really_ safe ? */ \
       ((!_a_sign && !_b_sign) \
       ? \
         1 \
@@ -745,7 +744,9 @@ int sop_iopf(void *result, const char *const fmt, ...);
             ((!_a_sign && _b_sign) \
             ? \
               /* GCC type-limit hack: \
-               * umax a shoudl cast to _b_type safely.  TEST! */ \
+               * XXX: need a test for this in case umax of a smaller \
+               * type could exceed smax of a larger type. The other direction \
+               * could truncate _b though so it's a challene either way. */ \
               ((((_b) > (_b_type)0 || (_b) == (_b_type)0) && \
                (((_b) < (_b_type)__sop(m)(umax)(_a_type)) || \
                 ((_b) == (_b_type)__sop(m)(umax)(_a_type)))) \
@@ -782,20 +783,17 @@ int sop_iopf(void *result, const char *const fmt, ...);
  * In the future, concatenation tactics like these and the ones used with the
  * operations may be employed to compartmentalize the sop_safe_cast tests, but
  * that pushes extra work on preprocessors tests for portability (CHAR_BIT == 8)
- * Is int and int32 or an int16, etc.
- */
+ * is int and int32 or an int16, etc. */
 #define sop_safe_cast_np(_ptr_sign, _ptr_type, _ptr, \
-                        _a_sign, _a_type, _a, \
-                        _b_sign, _b_type, _b) \
+                         _a_sign, _a_type, _a, \
+                         _b_sign, _b_type, _b) \
   sop_safe_cast(_a_sign, _a_type, _a, _b_sign, _b_type, _b)
-
 
 #define sop_safe_cast_p(_ptr_sign, _ptr_type, _ptr, \
                         _a_sign, _a_type, _a, \
                         _b_sign, _b_type, _b) \
   sop_safe_cast(_ptr_sign, _ptr_type, _ptr, _a_sign, _a_type, _a) && \
   sop_safe_cast(_ptr_sign, _ptr_type, _ptr, _b_sign, _b_type, _b)
-
 
 
 /*****************************************************************************
@@ -2108,7 +2106,6 @@ int sop_iopf(void *result, const char *const fmt, ...);
 })
 
 /* Helper macros for performing repeated operations in one call */
-
 #define sop_add3(_ptr, _A, _B, _C) \
 ({ typeof(_A) __sop(var)(a) = (_A); \
    typeof(_B) __sop(var)(b) = (_B); \
