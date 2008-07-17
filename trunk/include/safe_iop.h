@@ -959,13 +959,9 @@ int sop_iopf(void *result, const char *const fmt, ...);
  * This will increment until i == max or the variable would overflow (i=INT_MAX).
  */
 #define sop_incx(_p) \
-  (sop_signed_##_p ? \
-    sop_sadd(sop_signed_##_p, sop_typeof_##_p, &(sop_valueof_##_p), \
-             sop_signed_##_p, sop_typeof_##_p, sop_valueof_##_p, \
-             sop_signed_##_p, sop_typeof_##_p, 1) : \
-    sop_uadd(sop_signed_##_p, sop_typeof_##_p, &(sop_valueof_##_p), \
-             sop_signed_##_p, sop_typeof_##_p, sop_valueof_##_p, \
-             sop_signed_##_p, sop_typeof_##_p, 1))
+    sop_add_##_p(sop_signed_##_p, sop_typeof_##_p, &(sop_valueof_##_p), \
+                 sop_signed_##_p, sop_typeof_##_p, sop_valueof_##_p, \
+                 sop_signed_##_p, sop_typeof_##_p, 1)
 
 /* sop_decx
  * Decrements the value stored in a variable by one.
@@ -975,13 +971,9 @@ int sop_iopf(void *result, const char *const fmt, ...);
  * This will decrement until the variablewould underflow (i==0).
  */
 #define sop_decx(_p) \
-  (sop_signed_##_p ? \
-    sop_ssub(sop_signed_##_p, sop_typeof_##_p, &(sop_valueof_##_p), \
-              sop_signed_##_p, sop_typeof_##_p, sop_valueof_##_p, \
-              sop_signed_##_p, sop_typeof_##_p, 1) : \
-    sop_usub(sop_signed_##_p, sop_typeof_##_p, &(sop_valueof_##_p), \
-              sop_signed_##_p, sop_typeof_##_p, sop_valueof_##_p, \
-              sop_signed_##_p, sop_typeof_##_p, 1))
+  sop_sub_##_p(sop_signed_##_p, sop_typeof_##_p, &(sop_valueof_##_p), \
+               sop_signed_##_p, sop_typeof_##_p, sop_valueof_##_p, \
+               sop_signed_##_p, sop_typeof_##_p, 1)
 
 /* sop_<op>x[3-5]
  * These functions allow for the easy repetition of the same operation.
