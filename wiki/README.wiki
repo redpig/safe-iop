@@ -84,7 +84,7 @@ There are also two helper functions for safe increment/decrement∴
   ...
   if (!safe_dec(&a)) abort();
 }}}
-(Available in truck after change r19)
+(Available in trunk after change r19)
 
 It is important to note that it is safest to pass integer of similar types to
 safe_iop.  However, as of change r20, safe_iop supports automatic type casting to the type of the first operand.  However, if this cast cannot be performed without losing data, safe_iop will fail.  The failure mode depends on the compilation options.  If -DNDEBUG is defined, the safe_iop will return false.  If it is not defined, assert() is called and the process will terminated.
