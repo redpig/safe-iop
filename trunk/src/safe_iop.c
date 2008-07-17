@@ -2727,7 +2727,7 @@ int T_add_increment() {
   uint16_t a = 1, b = 2, c = 0, d[2]= {0};
   uint16_t *cur = d;
   EXPECT_TRUE(sop_add(cur++, a++, b));
-  EXPECT_EQUAL(cur, &d[1]);
+  EXPECT_EQUAL(cur, (uint16_t *)(&d[1]));
   EXPECT_EQUAL(d[0], 3);
   EXPECT_EQUAL(a, 2);
   a = 1; b = 2; c = 1; cur=d;d[0] = 0;
@@ -2742,7 +2742,7 @@ int T_add_increment() {
   a = 1; b = 2; cur=d;d[0] = 0;
   EXPECT_TRUE(sop_add(cur++, a++, b++));
   EXPECT_EQUAL(d[0], 3);
-  EXPECT_EQUAL(cur, &d[1]);
+  EXPECT_EQUAL(cur, (uint16_t *)(&d[1]));
   EXPECT_EQUAL(a, 2);
   EXPECT_EQUAL(b, 3);
 

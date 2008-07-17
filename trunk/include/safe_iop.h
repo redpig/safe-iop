@@ -1970,7 +1970,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_A) __sop(var)(_a) = (_A); \
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
-  _Bool __sop(var)(ok) =  \
+  int __sop(var)(ok) =  \
     (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
@@ -1990,7 +1990,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_A) __sop(var)(_a) = (_A); \
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
-  _Bool __sop(var)(ok) =  \
+  int __sop(var)(ok) =  \
     (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
@@ -2010,7 +2010,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_A) __sop(var)(_a) = (_A); \
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
-  _Bool __sop(var)(ok) =  \
+  int __sop(var)(ok) =  \
     (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
@@ -2030,7 +2030,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_A) __sop(var)(_a) = (_A); \
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
-  _Bool __sop(var)(ok) =  \
+  int __sop(var)(ok) =  \
     (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
@@ -2050,7 +2050,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_A) __sop(var)(_a) = (_A); \
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
-  _Bool __sop(var)(ok) =  \
+  int __sop(var)(ok) =  \
     (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
@@ -2070,7 +2070,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_A) __sop(var)(_a) = (_A); \
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
-  _Bool __sop(var)(ok) =  \
+  int __sop(var)(ok) =  \
     (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
@@ -2090,7 +2090,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
   typeof(_A) __sop(var)(_a) = (_A); \
   typeof(_B) __sop(var)(_b) = (_B); \
   typeof(_A) *__sop(var)(_ptr) = (_dst); \
-  _Bool __sop(var)(ok) =  \
+  int __sop(var)(ok) =  \
     (sop_safe_cast(__sop(m)(is_signed)(_A), typeof(_A), __sop(var)(_a), \
                    __sop(m)(is_signed)(_B), typeof(_B), __sop(var)(_b)) ? \
       ( __sop(m)(is_signed)(_A) ? \
