@@ -6,6 +6,10 @@
  *
  * Namespace: This library uses the prefix sop_.
  *
+ * Known issues:
+ * - GCC < 4.3 warns when using a constant value as it compiles out always 
+ *   pass or fail tests  (e.g., 1 > 0 with s8,s16)
+ *
  * To Do:
  * = next milestone (0.5.0)
  * - Autogenerate test cases for all op-type-type combinations
@@ -22,15 +26,17 @@
  * = [next milestone]
  * - Use cpp concatenation to minimize code duplication
  * -- E.g., sop_addx no longer expands sop_sadd and sop_uadd at each callsite
- * - re-namespaced to sop_
+ * - Re-namespaced to sop_
  * - All tests pass under pcc
- * - Compiles under pcc
  * - Added pointer type markup which allows for (e.g.) u64=u32+u32.
- * - Rewrote to support passing consts and compilers without typeof()
- * -- added sop_<op>x  -- primary interface
- * -- added sop_<op>x[num] - convenience interface
- * -- added sop_incx and sop_decx
- * - refactored nearly all of the code
+ * - Refactored the code again due to massive increase in generated code size
+ * -- Rewrote to support passing consts and compilers without typeof()
+ * -- Added sop_<op>x  -- primary interface
+ * -- Added sop_<op>x[num] - convenience interface
+ * -- Added sop_incx and sop_decx
+ * = 0.4.0 (never released)
+ * - Compiles under pcc (but tests fail due to max # calculations)
+ * - Refactored nearly all of the code
  * - Removed -DSAFE_IOP_COMPAT
  * - Add support for differently typed/signed operands in sop_iopf format
  * - Added negative tests to add T_<op>_*()s
@@ -95,7 +101,7 @@
 
 #define SAFE_IOP_VERSION "0.5.0rc1"
 
-/* sop_iopf
+/* sopf
  *
  * Takes in a character array which specifies the operations
  * to perform on a given value. The value will be assumed to be
@@ -134,7 +140,7 @@
  * - This function is only provided if sop_iop.c is compiled and linked
  *   into the source.  Otherwise only macro-based functions are available.
  */
-int sop_iopf(void *result, const char *const fmt, ...);
+int sopf(void *result, const char *const fmt, ...);
 
 
 /* Type markup macros
@@ -968,7 +974,7 @@ int sop_iopf(void *result, const char *const fmt, ...);
  * Example:
  *   unsigned int i = 1024;
  *   while (sop_decx(sop_u32(i)) { ... }
- * This will decrement until the variablewould underflow (i==0).
+ * This will decrement until the variable would underflow (i==0).
  */
 #define sop_decx(_p) \
   sop_sub_##_p(sop_signed_##_p, sop_typeof_##_p, &(sop_valueof_##_p), \
