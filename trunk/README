@@ -9,7 +9,7 @@ See LICENSE in the distribution. This is covered under a BSD license.
 
 Unsafe integer operations are a major cause of software defects even in modern
 day software.  C is the underlying language for most high level languages
-(Ruby, Python, Java, etc) in addition to being in widespread general use.
+(Ruby, Python, Java, etc.) in addition to being in widespread general use.
 C is a preferred language for high performance programming and is
 often used for media file parsing and manipulation. 
 
@@ -204,7 +204,7 @@ More to come!
 See http://code.google.com/p/safe-iop/wiki/Compatibility
 
 
-= Credit where credit is do =
+= Credit where credit is due =
 
   * The functions used in this library were largely drawn from the examples provided in CERT's secure coding standard.
   * Thanks to peter@valchev.net for reviews, comments, enthusiasm, and multiple platform tests!
