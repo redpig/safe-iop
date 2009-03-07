@@ -1,0 +1,9 @@
+This repository is for safe-iop experimentation until a final interface
+is decided upon.  Many approaches have been tested, but each have had
+their limitations.  On one side, transparency for the developer is
+crucial, but on the other side, so is portability.  The real goal of
+this project would be to create a library which meets both of those
+needs maximally.
+
+
+We'll see if it's possible.
