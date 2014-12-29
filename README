@@ -1,9 +1,13 @@
-This repository is for safe-iop experimentation until a final interface
-is decided upon.  Many approaches have been tested, but each have had
-their limitations.  On one side, transparency for the developer is
-crucial, but on the other side, so is portability.  The real goal of
-this project would be to create a library which meets both of those
-needs maximally.
+# Safe Integer Operations for C
 
+This is the authoritative repository for safe-iop.
 
-We'll see if it's possible.
+For the original README, look at
+  https://github.com/redpig/safe-iop/tree/codesite_import/codesite/trunk/README
+
+The last release is 0.3.1 cut from
+  https://github.com/redpig/safe-iop/tree/codesite_import/codesite/tags/r0.3.1
+
+The migration from codesite is still in progress and this README will be updated
+when it is complete.
+
