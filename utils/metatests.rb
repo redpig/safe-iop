@@ -400,7 +400,7 @@ print <<EOF
 #include <stdint.h>
 #include <stdarg.h>
 #include <string.h>
-#include <sys/SupportedTypes::TYPES.h>
+#include <sys/types.h>
 #include <safe_iop.h>
 #include <limits.h>
 

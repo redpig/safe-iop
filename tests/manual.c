@@ -56,7 +56,6 @@
 #define EXPECT_EQUAL(lhs,rhs) { \
   printf("%s:%d:%s: EXPECT_EQUAL(" #lhs " == " #rhs ") -> ", \
          __FILE__, __LINE__, __func__); \
-  printf("(%d == %d) => ", (int)(lhs), (int)(rhs)); \
   if ((lhs) != (rhs)) { printf(" FAILED\n"); expect_fail++; r = 0; } \
   else { printf(" PASSED\n"); expect_succ++; } \
   expect++; \
@@ -322,14 +321,14 @@ int T_add_mixed() {
 #ifdef __GNUC__
 int T_add_increment() {
   int r=1;
-  uint16_t a = 1, b = 2, c = 0, d[2]= {0};
+  uint16_t a = 1, b = 2, d[2]= {0};
   uint16_t *cur = d;
   EXPECT_TRUE(sop_add(cur++, a++, b));
   EXPECT_EQUAL(cur, (uint16_t *)(&d[1]));
   EXPECT_EQUAL(d[0], 3);
   EXPECT_EQUAL(a, 2);
-  a = 1; b = 2; c = 1; cur=d;d[0] = 0;
 #if 0 /* Not yet implemented */
+  a = 1; b = 2; c = 1; cur=d;d[0] = 0;
   EXPECT_TRUE(sop_addv(cur++, 3, sop_u16(a++), sop_u16(b++), sop_u16(c)));
   EXPECT_EQUAL(d[0], 4);
   EXPECT_EQUAL(cur, &d[1]);

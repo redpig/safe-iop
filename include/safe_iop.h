@@ -472,6 +472,10 @@ int sopf(void *result, const char *const fmt, ...);
 
 
 /*** Same-type addition macros ***/
+
+/* Unfortunately, this is incomplete in light of -Wsign-compare where
+ * signed operands will not cast cleanly to umax.
+ */
 #define sop_uadd(_ptr_sign, _ptr_type, _ptr, \
                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
  ((((_ptr_type)(_b) <= \
@@ -483,19 +487,16 @@ int sopf(void *result, const char *const fmt, ...);
 
 #define sop_sadd(_ptr_sign, _ptr_type, _ptr, \
                  _a_sign, _a_type, _a, _b_sign, _b_type, _b) \
-   (((((_ptr_type)(_b) > (_ptr_type)0) && \
-       ((_ptr_type)(_a) > (_ptr_type)0)) \
+   ((((_ptr_type)(_b) > (_ptr_type)0) \
      ? /*>0*/  \
        ((_ptr_type)(_a) > \
          (_ptr_type)(__sop(m)(smax)(_ptr_type) - \
          (_ptr_type)(_b)) ? 0 : 1) \
      : \
-      /* <0 */ \
-      ((!((_ptr_type)(_b) > (_ptr_type)0) && \
-               !((_ptr_type)(_a) > (_ptr_type)0)) ? \
-        (((_ptr_type)(_a) < \
+       /* <0 */ \
+       ((_ptr_type)(_a) < \
           (_ptr_type)(__sop(m)(smin)(_ptr_type) - \
-                      (_ptr_type)(_b))) ? 0 : 1) : 1) \
+                      (_ptr_type)(_b)) ? 0 : 1) \
      ) \
    ? /* Now assign if needed */ \
      (((void *)(_ptr)) != NULL ? \
@@ -835,7 +836,7 @@ int sopf(void *result, const char *const fmt, ...);
     sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
     sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     /* PCC won't do an extra dereference here! */ \
-    (((void *)(sop_valueof_##_ptr)) ? \
+    (((void *)(sop_valueof_##_ptr)) != NULL ? \
       sop_add_##_ptr( \
                  sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
@@ -853,7 +854,7 @@ int sopf(void *result, const char *const fmt, ...);
     sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
     sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     /* PCC won't do an extra dereference here! */ \
-    (((void *)(sop_valueof_##_ptr)) ? \
+    (((void *)(sop_valueof_##_ptr)) != NULL ? \
       sop_sub_##_ptr( \
                  sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
@@ -871,7 +872,7 @@ int sopf(void *result, const char *const fmt, ...);
     sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
     sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     /* PCC won't do an extra dereference here! */ \
-    (((void *)(sop_valueof_##_ptr)) ? \
+    (((void *)(sop_valueof_##_ptr)) != NULL ? \
       sop_mul_##_ptr( \
                  sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
@@ -889,7 +890,7 @@ int sopf(void *result, const char *const fmt, ...);
     sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
     sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     /* PCC won't do an extra dereference here! */ \
-    (((void *)(sop_valueof_##_ptr)) ? \
+    (((void *)(sop_valueof_##_ptr)) != NULL ? \
       sop_div_##_ptr( \
                  sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
@@ -907,7 +908,7 @@ int sopf(void *result, const char *const fmt, ...);
     sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
     sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     /* PCC won't do an extra dereference here! */ \
-    (((void *)(sop_valueof_##_ptr)) ? \
+    (((void *)(sop_valueof_##_ptr)) != NULL ? \
       sop_mod_##_ptr( \
                  sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
@@ -925,7 +926,7 @@ int sopf(void *result, const char *const fmt, ...);
     sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
     sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     /* PCC won't do an extra dereference here! */ \
-    (((void *)(sop_valueof_##_ptr)) ? \
+    (((void *)(sop_valueof_##_ptr)) != NULL ? \
       sop_shl_##_ptr( \
                  sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
@@ -943,7 +944,7 @@ int sopf(void *result, const char *const fmt, ...);
     sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
     sop_signed_##_b, sop_typeof_##_b, sop_valueof_##_b) ? \
     /* PCC won't do an extra dereference here! */ \
-    (((void *)(sop_valueof_##_ptr)) ? \
+    (((void *)(sop_valueof_##_ptr)) != NULL ? \
       sop_shr_##_ptr( \
                  sop_signed_##_ptr, sop_typeof_##_ptr, sop_valueof_##_ptr, \
                  sop_signed_##_a, sop_typeof_##_a, sop_valueof_##_a, \
